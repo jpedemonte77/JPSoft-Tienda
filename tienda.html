@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JPSoft | QBV</title>
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="JPSoft | QBV" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">JPSoft | QBV</div>
+    <div class="login-sub">Ingresá tus credenciales para continuar</div>
+    <form id="login-form" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="login-email" placeholder="tu@email.com" required autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" class="form-input" id="login-password" placeholder="••••••••" required autocomplete="current-password" />
+      </div>
+      <p class="login-error" id="login-error"></p>
+      <button type="submit" class="btn-login-submit" id="btn-login">Ingresar</button>
+    </form>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-wrapper" class="hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">JPSoft | QBV</span>
+      <button class="sidebar-close" id="sidebar-close">✕</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Operación</div>
+      <button class="nav-item active" data-view="venta">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        Venta
+      </button>
+      <button class="nav-item" data-view="caja">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        Caja
+      </button>
+      <div class="nav-section">Catálogo</div>
+      <button class="nav-item" data-view="productos">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Productos
+      </button>
+      <button class="nav-item" data-view="proveedores">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        Proveedores
+      </button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="caja-sidebar" id="caja-sidebar-info">
+        <div class="caja-sidebar-label">Caja del día</div>
+        <div class="caja-sidebar-value" id="caja-sidebar-total">$0</div>
+        <div class="caja-sidebar-state caja-closed" id="caja-sidebar-state">Cerrada</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- MAIN -->
+  <div class="main-wrapper">
+    <header class="topbar">
+      <button class="menu-btn" id="menu-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 class="topbar-title" id="topbar-title">Venta</h1>
+      <div class="topbar-actions">
+        <div class="user-info" id="user-info">
+          <div class="user-avatar" id="user-avatar"></div>
+          <span class="user-nombre" id="user-nombre"></span>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Cerrar sesión">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════
+         VISTA: VENTA
+    ══════════════════════════════ -->
+    <div class="view active" id="view-venta" style="padding:14px">
+      <div class="venta-layout">
+
+        <!-- Panel izquierdo: productos -->
+        <div class="panel">
+          <div class="search-bar">
+            <div class="search-wrap" id="searchWrap">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, código o escanear…" />
+            </div>
+            <span class="scan-badge" id="scanBadge">
+              <span class="scan-dot"></span>
+              <span id="scanText">Listo</span>
+            </span>
+          </div>
+          <div class="filter-bar" id="filterBar">
+            <!-- Pills de proveedores generadas por JS -->
+          </div>
+          <div class="table-wrap" id="tableWrap">
+            <table>
+              <colgroup>
+                <col style="width:28px">
+                <col style="width:110px">
+                <col style="width:48px">
+                <col style="width:120px">
+                <col style="min-width:140px">
+                <col style="width:82px">
+                <col style="width:76px">
+                <col style="width:60px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Proveedor</th>
+                  <th>ID</th>
+                  <th>Código</th>
+                  <th>Producto</th>
+                  <th class="num">P. Venta</th>
+                  <th class="num">P. Lista</th>
+                  <th class="num">Stock</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+            <div class="empty-row" id="emptyMsg" style="display:none">No se encontraron productos.</div>
+            <div id="pagination" style="display:flex;align-items:center;gap:8px;justify-content:center;padding:.7rem 0;background:var(--surface);border-top:1px solid var(--border)"></div>
+          </div>
+        </div>
+
+        <!-- Panel derecho: carrito -->
+        <div class="panel cart-panel" id="cartPanelWrap">
+          <div class="panel-header">
+            <span class="panel-title">Carrito</span>
+            <span class="badge badge-neutral" id="cartCount">0 ítems</span>
+          </div>
+          <div class="cart-items" id="cartItems">
+            <div class="cart-empty" id="cartEmpty">Agregá productos<br>con el botón <strong>+</strong></div>
+          </div>
+          <div class="cart-footer">
+            <div class="cart-total-row">
+              <span class="cart-total-label">Total</span>
+              <span class="cart-total-amount" id="cartTotal">$0</span>
+            </div>
+            <!-- Métodos de pago -->
+            <div class="pago-grid" id="pagoGrid">
+              <button class="pago-btn selected-efectivo" data-metodo="efectivo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+                Efectivo
+              </button>
+              <button class="pago-btn" data-metodo="debito">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                Débito
+              </button>
+              <button class="pago-btn full" data-metodo="mp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/></svg>
+                Transferencia / QR · Mercado Pago
+              </button>
+            </div>
+            <button class="btn-primary" id="btnConfirmarVenta" style="width:100%;justify-content:center;padding:10px" disabled>
+              Confirmar venta
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         VISTA: CAJA
+    ══════════════════════════════ -->
+    <div class="view" id="view-caja">
+      <div class="view-header">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="btn-secondary" id="btnCajaAnterior" style="padding:5px 10px;font-size:18px;line-height:1">←</button>
+          <div>
+            <div class="view-title" id="cajaTituloFecha">Caja</div>
+            <div style="font-size:13px;color:var(--text3);margin-top:2px" id="cajaSubtitulo"></div>
+          </div>
+          <button class="btn-secondary" id="btnCajaSiguiente" style="padding:5px 10px;font-size:18px;line-height:1">→</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span id="cajaEstadoBadge"></span>
+          <button class="btn-secondary hidden" id="btnReabrirCaja">Reabrir caja</button>
+          <button class="btn-danger hidden" id="btnCerrarCaja">Cerrar caja</button>
+        </div>
+      </div>
+
+      <!-- Estado: caja cerrada → formulario apertura -->
+      <div id="cajaAperturaWrap">
+        <div class="apertura-card">
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">Apertura de caja</div>
+          <div style="font-size:13px;color:var(--text3);margin-bottom:1rem">Completá los datos para iniciar el día</div>
+          <div class="apertura-fecha" id="aperturaFecha"></div>
+          <div class="form-group">
+            <label class="form-label">Turno</label>
+            <div class="turno-grid">
+              <button class="turno-btn active" data-turno="Mañana">Mañana</button>
+              <button class="turno-btn" data-turno="Tarde">Tarde</button>
+              <button class="turno-btn" data-turno="Noche">Noche</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fondo inicial ($)</label>
+            <input type="number" class="form-input" id="aperturaFondo" placeholder="Ej: 5000" min="0" />
+          </div>
+          <button class="btn-primary" id="btnAbrirCaja" style="width:100%;justify-content:center;margin-top:4px">
+            Abrir caja
+          </button>
+        </div>
+      </div>
+
+      <!-- Estado: caja abierta → stats + timeline -->
+      <div id="cajaAbiertaWrap" class="hidden">
+        <div class="stats-grid" id="cajaStats">
+          <div class="stat-card">
+            <div class="stat-card-label">Total del día</div>
+            <div class="stat-card-value" id="statTotal">$0</div>
+            <div class="stat-card-sub" id="statVentas">0 ventas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Efectivo</div>
+            <div class="stat-card-value" style="color:var(--success)" id="statEfectivo">$0</div>
+            <div class="stat-card-sub" id="statEfectivoPct">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Débito</div>
+            <div class="stat-card-value" style="color:var(--info)" id="statDebito">$0</div>
+            <div class="stat-card-sub" id="statDebitoPct">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Transf. / MP</div>
+            <div class="stat-card-value" style="color:var(--mp)" id="statMp">$0</div>
+            <div class="stat-card-sub" id="statMpPct">—</div>
+          </div>
+        </div>
+
+        <!-- Info apertura -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;font-size:13px;display:flex;gap:24px;flex-wrap:wrap;margin-bottom:1rem">
+          <div><span style="color:var(--text3)">Apertura: </span><span style="font-family:'DM Mono',monospace" id="infoAperturaHora">—</span></div>
+          <div><span style="color:var(--text3)">Fondo inicial: </span><span style="font-weight:500" id="infoAperturaFondo">—</span></div>
+          <div><span style="color:var(--text3)">Turno: </span><span id="infoAperturaTurno">—</span></div>
+        </div>
+
+        <!-- Timeline ventas -->
+        <div class="timeline-wrap">
+          <div class="timeline-header">
+            <span>Descripción</span>
+            <span>Hora</span>
+            <span>Método</span>
+            <span class="num">Ítems</span>
+            <span class="num">Total</span>
+          </div>
+          <div id="ventasTimeline">
+            <div class="empty-row">No hay ventas registradas hoy.</div>
+          </div>
+        </div>
+
+        <!-- Resumen cierre (aparece al cerrar) -->
+        <div id="cierreSummaryWrap" class="hidden" style="margin-top:1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem">
+          <div style="font-size:14px;font-weight:600;margin-bottom:10px">Resumen de cierre</div>
+          <div id="cierreSummaryContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         VISTA: PRODUCTOS
+    ══════════════════════════════ -->
+    <div class="view" id="view-productos">
+      <div class="view-header">
+        <div class="view-title">Productos</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-secondary" id="btnImportarExcel">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+            Importar Excel
+          </button>
+          <button class="btn-primary" id="btnNuevoProducto">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo producto
+          </button>
+        </div>
+      </div>
+
+      <div class="productos-toolbar">
+        <div class="productos-search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" class="search-input" id="prodSearchInput" placeholder="Buscar por nombre, código de barras o código interno…" style="padding-left:32px" />
+        </div>
+        <select class="form-select" id="prodFilterProv" style="width:180px">
+          <option value="">Todos los proveedores</option>
+        </select>
+        <button class="btn-secondary" id="btnScanProductos">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+          Escanear
+        </button>
+      </div>
+
+      <div class="productos-table-wrap">
+        <table>
+          <colgroup>
+            <col style="width:40px">
+            <col style="width:110px">
+            <col style="width:40px">
+            <col style="min-width:160px">
+            <col style="width:130px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:70px">
+            <col style="width:76px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Proveedor</th>
+              <th>Cód.</th>
+              <th>Producto</th>
+              <th>Cód. Barras</th>
+              <th class="num">P. Lista</th>
+              <th class="num">Ganancia</th>
+              <th class="num">P. Venta</th>
+              <th class="num">Stock</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="prodTableBody"></tbody>
+        </table>
+        <div class="empty-row" id="prodEmptyMsg" style="display:none">No se encontraron productos.</div>
+        <div id="prodPagination" style="display:flex;align-items:center;gap:8px;justify-content:center;padding:.7rem 0;border-top:1px solid var(--border)"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         VISTA: PROVEEDORES
+    ══════════════════════════════ -->
+    <div class="view" id="view-proveedores">
+      <div class="view-header">
+        <div class="view-title">Proveedores</div>
+        <button class="btn-primary" id="btnNuevoProveedor">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo proveedor
+        </button>
+      </div>
+      <div style="background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:var(--warn);margin-bottom:1.25rem;display:flex;align-items:center;gap:8px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Los proveedores marcados como <strong style="margin:0 3px">Tabaco / Cigarrillos</strong> tienen un margen de ganancia diferenciado que se aplica automáticamente a sus productos.
+      </div>
+      <div class="proveedores-grid" id="proveedoresGrid">
+        <div class="empty-row">Cargando proveedores…</div>
+      </div>
+    </div>
+
+  </div><!-- /main-wrapper -->
+</div><!-- /app-wrapper -->
+
+<!-- ══════════════════════════════
+     MODAL: CONFIRMAR VENTA
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalVenta">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Confirmar venta</span>
+      <button class="modal-close" id="closeModalVenta">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:12px" id="ventaModalSub"></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.9" id="ventaTicketPreview"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn-danger" id="btnCancelarVenta">Cancelar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary" id="btnGuardarTicket">Guardar .txt</button>
+        <button class="btn-primary" id="btnConfirmarVentaFinal">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: PRODUCTO (nuevo / editar)
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalProducto">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalProductoTitulo">Nuevo producto</span>
+      <button class="modal-close" id="closeModalProducto">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Proveedor</label>
+          <select class="form-select" id="pf-proveedor"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ID interno</label>
+          <input type="text" class="form-input" id="pf-id" placeholder="001" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción del producto</label>
+        <input type="text" class="form-input" id="pf-desc" placeholder="Ej: Coca-Cola 1.5L" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Código de barras</label>
+          <input type="text" class="form-input" id="pf-cod" placeholder="7790895000052" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">P. Lista ($)</label>
+          <input type="number" class="form-input" id="pf-lista" placeholder="0" min="0" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Stock actual</label>
+          <input type="number" class="form-input" id="pf-stock" placeholder="0" min="0" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock mínimo</label>
+          <input type="number" class="form-input" id="pf-stockMin" placeholder="5" min="0" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger hidden" id="btnEliminarProducto">Eliminar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary" id="btnCancelarProducto">Cancelar</button>
+        <button class="btn-primary" id="btnGuardarProducto">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: PROVEEDOR (nuevo / editar)
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalProveedor">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalProveedorTitulo">Nuevo proveedor</span>
+      <button class="modal-close" id="closeModalProveedor">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nombre del proveedor</label>
+        <input type="text" class="form-input" id="vf-nombre" placeholder="Ej: Refrescos SA" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Margen de ganancia (%)</label>
+          <input type="number" class="form-input" id="vf-ganancia" placeholder="20" min="0" max="200" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoría</label>
+          <input type="text" class="form-input" id="vf-categoria" placeholder="Ej: Bebidas" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer">
+          <input type="checkbox" id="vf-tabaco" style="width:16px;height:16px;accent-color:var(--warn);cursor:pointer" />
+          Este proveedor es de Tabaco / Cigarrillos
+        </label>
+        <div style="font-size:11.5px;color:var(--text3);margin-top:5px;padding-left:24px">
+          El margen ingresado arriba se aplicará igual, pero los productos quedarán marcados con categoría tabaco.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger hidden" id="btnEliminarProveedor">Eliminar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary" id="btnCancelarProveedor">Cancelar</button>
+        <button class="btn-primary" id="btnGuardarProveedor">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: IMPORTAR EXCEL
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalImport">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title">Importar productos desde Excel</span>
+      <button class="modal-close" id="closeModalImport">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">
+        El Excel debe tener una hoja por proveedor. Cada hoja necesita columnas de <strong>descripción</strong> y <strong>precio de lista</strong>. Opcionalmente: ID, código de barras y precio sugerido.
+      </div>
+      <div id="importZone" style="border:1.5px dashed var(--border2);border-radius:var(--radius);padding:2rem;text-align:center;cursor:pointer;background:var(--surface2);transition:all var(--transition)">
+        <div style="font-size:28px;margin-bottom:8px">📂</div>
+        <div style="font-size:13px;font-weight:500;color:var(--text)">Hacé clic o arrastrá tu archivo Excel</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Soporta .xlsx con múltiples hojas</div>
+        <input type="file" id="importFileInput" accept=".xlsx,.xls" style="display:none" />
+      </div>
+      <div id="importPreview" class="hidden" style="margin-top:1rem">
+        <div style="height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:10px">
+          <div id="importProgressBar" style="height:3px;background:var(--text);border-radius:2px;width:0;transition:width .3s"></div>
+        </div>
+        <div class="status-box" id="importStatus" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:var(--text2);line-height:1.7"></div>
+      </div>
+    </div>
+    <div class="modal-footer hidden" id="importFooter">
+      <button class="btn-secondary" id="btnCancelarImport">Cancelar</button>
+      <button class="btn-primary" id="btnConfirmarImport">Importar productos</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: CONFIRMAR CIERRE CAJA
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalCierreCaja">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <span class="modal-title">Cerrar caja</span>
+      <button class="modal-close" id="closeModalCierre">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text2);line-height:1.6" id="cierreResumenTexto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="btnCancelarCierre">Cancelar</button>
+      <button class="btn-danger" id="btnConfirmarCierre">Confirmar cierre</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast hidden" id="toast"></div>
+
+<!-- XLSX -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
