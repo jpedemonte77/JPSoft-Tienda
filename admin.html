@@ -76,7 +76,7 @@
       </button>
     </nav>
     <div class="sidebar-bottom">
-      <a href="tienda.html" class="btn-secondary" style="width:100%;justify-content:center;font-size:12px;text-decoration:none;display:flex">
+      <a href="tienda.html" style="width:100%;justify-content:center;font-size:13px;font-weight:500;text-decoration:none;display:flex;align-items:center;padding:10px 16px;background:#111;color:#fff;border-radius:8px;border:1px solid #111;transition:background .15s">
         ← Tienda
       </a>
     </div>
@@ -243,16 +243,12 @@
          VISTA: EXPORTAR EXCEL
     ══════════════════════════════ -->
     <div class="view" id="view-exportar">
-      <div class="view-header">
-        <div class="view-title">Exportar a Excel</div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:stretch">
 
         <!-- Ventas del período -->
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;display:flex;flex-direction:column">
           <div style="font-size:14px;font-weight:600;margin-bottom:6px">Ventas del período</div>
-          <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Exporta todas las ventas del rango de fechas seleccionado con detalle de ítems, método de pago y totales.</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6;flex:1">Exporta todas las ventas del rango de fechas seleccionado con detalle de ítems, método de pago y totales.</div>
           <div class="form-row" style="margin-bottom:10px">
             <div class="form-group" style="margin:0">
               <label class="form-label">Desde</label>
@@ -270,9 +266,9 @@
         </div>
 
         <!-- Resumen de caja -->
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;display:flex;flex-direction:column">
           <div style="font-size:14px;font-weight:600;margin-bottom:6px">Resumen de caja</div>
-          <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Exporta un resumen diario con totales por método de pago, cantidad de ventas, apertura y cierre.</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6;flex:1">Exporta un resumen diario con totales por método de pago, cantidad de ventas, apertura y cierre.</div>
           <div class="form-row" style="margin-bottom:10px">
             <div class="form-group" style="margin:0">
               <label class="form-label">Desde</label>
@@ -290,10 +286,11 @@
         </div>
 
         <!-- Lista de productos -->
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;display:flex;flex-direction:column">
           <div style="font-size:14px;font-weight:600;margin-bottom:6px">Lista de productos</div>
-          <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Exporta todos los productos con proveedor, código, precio de lista, ganancia y precio de venta.</div>
-          <button class="btn-primary" id="btnExpProductos" style="width:100%;justify-content:center;margin-top:2.5rem">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6;flex:1">Exporta todos los productos con proveedor, código, precio de lista, ganancia y precio de venta.</div>
+          <div style="height:52px;margin-bottom:10px"></div>
+          <button class="btn-primary" id="btnExpProductos" style="width:100%;justify-content:center">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
             Exportar productos
           </button>
@@ -306,9 +303,6 @@
          VISTA: USUARIOS
     ══════════════════════════════ -->
     <div class="view" id="view-usuarios">
-      <div class="view-header">
-        <div class="view-title">Usuarios</div>
-      </div>
       <div style="background:var(--info-bg);border:1px solid var(--info-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:var(--info);margin-bottom:1.25rem;display:flex;align-items:center;gap:8px">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         El alta y baja de usuarios se gestiona desde <strong style="margin:0 4px">Firebase Console → Authentication</strong>. Acá podés ver quiénes tienen acceso y sus roles.
