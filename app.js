@@ -521,7 +521,6 @@ function renderCart() {
   if (cobrarBar)   cobrarBar.style.display   = keys.length > 0 ? "flex" : "none";
   if (cobrarItems) cobrarItems.textContent   = keys.length + (keys.length === 1 ? " ítem" : " ítems");
   if (cobrarTotal) cobrarTotal.textContent   = fmtDec(total);
-  if (cobrarDesc)  cobrarDesc.textContent    = descMonto > 0 ? "− " + fmtDec(descMonto) : "";
 
   // ── Compatibilidad ──
   const btnConfirmar = document.getElementById("btnConfirmarVenta");
@@ -736,7 +735,6 @@ function renderModalVenta() {
   const cobrarItems = document.getElementById("cobrarItems");
   if (cobrarTotal) cobrarTotal.textContent = fmtDec(total);
   if (cobrarItems) cobrarItems.textContent = keys.length + (keys.length === 1 ? " ítem" : " ítems");
-  if (cobrarDesc)  cobrarDesc.textContent  = descMonto > 0 ? "− " + fmtDec(descMonto) : "";
 
   window._ventaPendiente = { keys, total, subtotal, descMonto, hora, fecha };
 }
