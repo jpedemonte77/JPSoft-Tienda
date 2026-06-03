@@ -932,10 +932,40 @@ document.getElementById("btnGuardarTicket").addEventListener("click", () => {
 document.getElementById("btnConfirmarVentaFinal").addEventListener("click", confirmarVentaFinal);
 
 async function confirmarVentaFinal() {
-  const { keys, total, hora } = window._ventaPendiente || {};
-  if (!keys) return;
+  const pendiente = window._ventaPendiente;
+  if (!pendiente?.keys) return;
+  const { keys, total, hora, subtotal: vSubtotal, descMonto: vDesc } = pendiente;
 
-  // Cerrar modal y limpiar carrito INMEDIATAMENTE para evitar doble confirmación
+  // 1. Capturar todos los datos ANTES de limpiar el carrito
+  const items = keys.map(k => {
+    const { product: p, qty } = cart[k];
+    return { desc: p.desc, qty, precioUnit: Math.round(getPrecioVenta(p)), subtotal: Math.round(getPrecioVenta(p) * qty), proveedor: p.proveedor };
+  });
+
+  const stockUpdates = {};
+  keys.forEach(k => {
+    const { product: p, qty } = cart[k];
+    if (typeof p.stock === "number") {
+      stockUpdates[p._id] = Math.max(0, p.stock - qty);
+    }
+  });
+
+  const _cajaHoy = cajaData[todayKey()] || {};
+  const _turno = (_cajaHoy.manana?.apertura && !_cajaHoy.manana?.cierre) ? "manana"
+    : (_cajaHoy.tarde?.apertura && !_cajaHoy.tarde?.cierre) ? "tarde" : "manana";
+  const cajaActual = { ..._cajaHoy };
+  const turnoData  = cajaActual[_turno] || {};
+  const ventaId    = `v_${Date.now()}`;
+  const ventasActuales = { ...(turnoData.ventas || {}) };
+  ventasActuales[ventaId] = {
+    hora, metodo: metodoSeleccionado,
+    total:     Math.round(total),
+    subtotal:  Math.round(vSubtotal || total),
+    descuento: Math.round(vDesc || 0),
+    items, admin: getNombreUsuario()
+  };
+
+  // 2. Cerrar modal y limpiar carrito INMEDIATAMENTE
   Object.keys(cart).forEach(k => delete cart[k]);
   descuentoValor = 0;
   const descInput = document.getElementById("descuentoInput");
@@ -946,52 +976,13 @@ async function confirmarVentaFinal() {
   renderProductosVenta();
   showToast("Venta registrada ✓", "success");
 
-  const items = keys.map(k => {
-    const { product: p, qty } = cart[k];
-    return { desc: p.desc, qty, precioUnit: Math.round(getPrecioVenta(p)), subtotal: Math.round(getPrecioVenta(p) * qty), proveedor: p.proveedor };
-  });
+  // 3. Escribir en Firestore en segundo plano (funciona offline)
+  const cajaRef = doc(db, 'caja', todayKey());
+  setDoc(cajaRef, { [_turno]: { ...turnoData, ventas: ventasActuales } }, { merge: true });
 
-  // Descontar stock
-  const stockUpdates = {};
-  keys.forEach(k => {
-    const { product: p, qty } = cart[k];
-    if (typeof p.stock === "number") {
-      stockUpdates[`productos/${p._id}/stock`] = Math.max(0, p.stock - qty);
-    }
-  });
-  // Stock — sin await para no bloquear (Firestore sincroniza offline)
-  Object.entries(stockUpdates).forEach(([path, val]) => {
-    const prodId = path.split('/')[1];
+  Object.entries(stockUpdates).forEach(([prodId, val]) => {
     updateDoc(doc(db, 'productos', prodId), { stock: val });
   });
-
-  // Guardar venta en Firebase
-  const { subtotal: vSubtotal, descMonto: vDesc } = window._ventaPendiente || {};
-  // Guardar en el turno activo
-  const _cajaHoy = cajaData[todayKey()] || {};
-  const _turno = (_cajaHoy.manana?.apertura && !_cajaHoy.manana?.cierre) ? "manana"
-    : (_cajaHoy.tarde?.apertura && !_cajaHoy.tarde?.cierre) ? "tarde" : "manana";
-
-  // Usar datos en memoria (no necesita conexión para leer)
-  const cajaRef    = doc(db, 'caja', todayKey());
-  const cajaActual = cajaData[todayKey()] || {};
-  const ventaId    = `v_${Date.now()}`;
-  const turnoData  = cajaActual[_turno] || {};
-  const ventasActuales = { ...(turnoData.ventas || {}) };
-  ventasActuales[ventaId] = {
-    hora,
-    metodo:    metodoSeleccionado,
-    total:     Math.round(total),
-    subtotal:  Math.round(vSubtotal || total),
-    descuento: Math.round(vDesc || 0),
-    items,
-    admin:     getNombreUsuario()
-  };
-  // Firestore guarda localmente y sincroniza cuando vuelve internet
-  setDoc(cajaRef, {
-    [_turno]: { ...turnoData, ventas: ventasActuales }
-  }, { merge: true });
-
 }
 
 // ============================================================
