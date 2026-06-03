@@ -59,22 +59,10 @@ function setOnlineStatus(online) {
   }
 }
 
-// Detectar conexión usando eventos del navegador + fetch a Firebase
-async function checkFirebaseConnection() {
-  try {
-    await fetch(`https://firestore.googleapis.com/v1/projects/jpsoft-qbv/databases/(default)/documents/config/margenes`, { method: "HEAD", cache: "no-cache" });
-    setOnlineStatus(true);
-  } catch {
-    setOnlineStatus(false);
-  }
-}
-
-window.addEventListener("online",  () => { setOnlineStatus(true);  checkFirebaseConnection(); });
+// Detectar conexión usando eventos del navegador
+window.addEventListener("online",  () => setOnlineStatus(true));
 window.addEventListener("offline", () => setOnlineStatus(false));
-
-// Verificar periódicamente
-setInterval(checkFirebaseConnection, 10000);
-checkFirebaseConnection();
+setOnlineStatus(navigator.onLine);
 
 // ============================================================
 //  ESTADO GLOBAL
