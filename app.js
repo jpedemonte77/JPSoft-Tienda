@@ -798,9 +798,25 @@ document.addEventListener("keydown", e => {
   }
 });
 
-document.getElementById("searchInput").addEventListener("input", () => {
+document.getElementById("searchInput").addEventListener("input", e => {
   filaSeleccionada = -1;
   applyFilters();
+
+  // Detectar pegado de código de barras (texto largo sin espacios = posible código)
+  const val = document.getElementById("searchInput").value.trim();
+  if (val.length >= 8 && !val.includes(" ")) {
+    // Esperar un tick para que applyFilters termine
+    setTimeout(() => {
+      if (filtered.length === 1) {
+        addToCart(filtered[0]);
+        document.getElementById("searchInput").value = "";
+        applyFilters();
+        setScanState("normal");
+      } else if (filtered.length === 0) {
+        showToast("Producto no encontrado", "error");
+      }
+    }, 100);
+  }
 });
 
 function resaltarFila() {
