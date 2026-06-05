@@ -66,6 +66,18 @@ let provColorMap   = {};
 // ============================================================
 //  HELPERS
 // ============================================================
+
+// Extrae todas las ventas de un día (ambos turnos)
+function getVentasDia(dia) {
+  if (!dia) return [];
+  const ventas = [];
+  ["manana", "tarde"].forEach(turno => {
+    const t = dia[turno];
+    if (!t?.ventas) return;
+    Object.values(t.ventas).forEach(v => ventas.push({ ...v, turno }));
+  });
+  return ventas;
+}
 function fmt(n) {
   return "$" + Math.round(n).toLocaleString("es-AR");
 }
@@ -323,20 +335,26 @@ function generarReporte() {
 
   keys.forEach(k => {
     const dia = cajaData[k];
-    if (!dia?.ventas) return;
-    Object.values(dia.ventas).forEach(v => {
-      ventas.push({ ...v, fecha: k });
+    if (!dia) return;
+    // Leer ventas de ambos turnos
+    ["manana", "tarde"].forEach(turno => {
+      const t = dia[turno];
+      if (!t?.ventas) return;
+      Object.values(t.ventas).forEach(v => {
+        ventas.push({ ...v, fecha: k, turno });
+      });
     });
   });
 
   // Stats
-  let totE = 0, totD = 0, totM = 0;
+  let totE = 0, totD = 0, totC = 0, totM = 0;
   ventas.forEach(v => {
     if (v.metodo === "efectivo") totE += v.total || 0;
     else if (v.metodo === "debito") totD += v.total || 0;
+    else if (v.metodo === "credito") totC += v.total || 0;
     else if (v.metodo === "mp") totM += v.total || 0;
   });
-  const tot = totE + totD + totM;
+  const tot = totE + totD + totC + totM;
 
   document.getElementById("rStatTotal").textContent     = fmt(tot);
   document.getElementById("rStatVentas").textContent    = ventas.length + " ventas";
@@ -488,8 +506,7 @@ document.getElementById("btnExpVentas").addEventListener("click", () => {
 
   keys.forEach(k => {
     const dia = cajaData[k];
-    if (!dia?.ventas) return;
-    Object.values(dia.ventas).forEach(v => {
+    getVentasDia(dia).forEach(v => {
       (v.items || []).forEach(i => {
         data.push([
           fechaLabel(k), v.hora||"", i.desc||"", i.qty||0,
@@ -514,24 +531,28 @@ document.getElementById("btnExpCaja").addEventListener("click", () => {
 
   keys.forEach(k => {
     const dia = cajaData[k];
-    if (!dia?.apertura) return;
-    const ventas = dia.ventas ? Object.values(dia.ventas) : [];
-    let totE = 0, totD = 0, totM = 0;
-    ventas.forEach(v => {
-      if (v.metodo === "efectivo") totE += v.total||0;
-      else if (v.metodo === "debito") totD += v.total||0;
-      else if (v.metodo === "mp") totM += v.total||0;
-    });
-    data.push([
-      fechaLabel(k),
-      dia.apertura.hora||"",
-      dia.cierre?.hora||"—",
-      dia.apertura.turno||"",
-      dia.apertura.fondo||0,
-      ventas.length,
-      totE, totD, totM,
-      totE + totD + totM
-    ]);
+    if (!dia) return;
+    ["manana", "tarde"].forEach(turno => {
+      const t = dia[turno];
+      if (!t?.apertura) return;
+      const ventas = t.ventas ? Object.values(t.ventas) : [];
+      let totE = 0, totD = 0, totC = 0, totM = 0;
+      ventas.forEach(v => {
+        if (v.metodo === "efectivo") totE += v.total||0;
+        else if (v.metodo === "debito") totD += v.total||0;
+        else if (v.metodo === "credito") totC += v.total||0;
+        else if (v.metodo === "mp") totM += v.total||0;
+      });
+      data.push([
+        fechaLabel(k),
+        t.apertura.hora||"",
+        t.cierre?.hora||"—",
+        turno === "manana" ? "Mañana" : "Tarde",
+        t.apertura.fondo||0,
+        ventas.length,
+        totE, totD, totC, totM,
+        totE + totD + totC + totM
+      ]);
   });
 
   if (data.length === 1) { showToast("No hay datos de caja en ese período.", "warning"); return; }
@@ -753,35 +774,39 @@ async function exportarBackupExcel() {
     });
 
     // Hoja 3: Ventas (todas)
-    const hVentas = [["Fecha","Hora","Producto","Cantidad","P. Unitario","Subtotal","Método","Total Venta"]];
+    const hVentas = [["Fecha","Turno","Hora","Producto","Cantidad","P. Unitario","Subtotal","Método","Total Venta"]];
     Object.entries(data.caja || {}).forEach(([fecha, dia]) => {
-      if (!dia.ventas) return;
-      Object.values(dia.ventas).forEach(v => {
+      getVentasDia(dia).forEach(v => {
         (v.items || []).forEach(i => {
-          hVentas.push([fechaLabel(fecha), v.hora||"", i.desc||"", i.qty||0, i.precioUnit||0, i.subtotal||0, v.metodo||"", v.total||0]);
+          hVentas.push([fechaLabel(fecha), v.turno === "manana" ? "Mañana" : "Tarde", v.hora||"", i.desc||"", i.qty||0, i.precioUnit||0, i.subtotal||0, v.metodo||"", v.total||0]);
         });
       });
     });
 
     // Hoja 4: Caja
-    const hCaja = [["Fecha","Apertura","Cierre","Turno","Fondo Inicial","Ventas","Efectivo","Débito","Mercado Pago","Total"]];
+    const hCaja = [["Fecha","Turno","Apertura","Cierre","Fondo Inicial","Ventas","Efectivo","Débito","Crédito","Mercado Pago","Total"]];
     Object.entries(data.caja || {}).sort().forEach(([fecha, dia]) => {
-      if (!dia.apertura) return;
-      const ventas = dia.ventas ? Object.values(dia.ventas) : [];
-      let totE = 0, totD = 0, totM = 0;
+      if (!dia) return;
+      ["manana", "tarde"].forEach(turno => {
+      const t = dia[turno];
+      if (!t?.apertura) return;
+      const ventas = t.ventas ? Object.values(t.ventas) : [];
+      let totE = 0, totD = 0, totC = 0, totM = 0;
       ventas.forEach(v => {
         if (v.metodo === "efectivo") totE += v.total||0;
-        else if (v.metodo === "debito" || v.metodo === "credito") totD += v.total||0;
+        else if (v.metodo === "debito") totD += v.total||0;
+        else if (v.metodo === "credito") totC += v.total||0;
         else if (v.metodo === "mp") totM += v.total||0;
       });
-      hCaja.push([fechaLabel(fecha), dia.apertura.hora||"", dia.cierre?.hora||"—", dia.apertura.turno||"", dia.apertura.fondo||0, ventas.length, totE, totD, totM, totE+totD+totM]);
+      hCaja.push([fechaLabel(fecha), turno === "manana" ? "Mañana" : "Tarde", t.apertura.hora||"", t.cierre?.hora||"—", t.apertura.fondo||0, ventas.length, totE, totD, totC, totM, totE+totD+totC+totM]);
+      }); // end forEach turno
     });
 
     exportarExcel([
       { nombre: "Productos",   data: hProductos,   colsMoney: [4, 6] },
       { nombre: "Proveedores", data: hProveedores },
-      { nombre: "Ventas",      data: hVentas,       colsMoney: [4, 5, 7] },
-      { nombre: "Caja",        data: hCaja,          colsMoney: [4, 6, 7, 8, 9] },
+      { nombre: "Ventas",      data: hVentas,       colsMoney: [5, 6, 8] },
+      { nombre: "Caja",        data: hCaja,          colsMoney: [4, 6, 7, 8, 9, 10] },
     ], `JPSoft_QBV_Backup_${todayKey()}.xlsx`);
 
     // Registrar fecha backup
