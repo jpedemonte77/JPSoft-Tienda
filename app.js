@@ -654,10 +654,15 @@ document.addEventListener("keydown", e => {
         e.preventDefault();
         if (filaSeleccionada >= 0 && filaSeleccionada < prodFiltered.length) {
           addToCart(prodFiltered[filaSeleccionada]);
-          filaSeleccionada = -1; resaltarFila();
+          resaltarFila();
         } else if (prodFiltered.length === 1) {
           addToCart(prodFiltered[0]);
         }
+        return;
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        removeFromCartByFila();
         return;
       }
       return;
@@ -764,6 +769,24 @@ window._removeFromCart = function(key) {
   renderProductosVenta();
   renderCart();
 };
+
+function addToCart(p) {
+  if (!p) return;
+  if (cart[p._id]) cart[p._id].qty += 1;
+  else cart[p._id] = { product: p, qty: 1 };
+  renderProductosVenta();
+  renderCart();
+}
+
+function removeFromCartByFila() {
+  if (filaSeleccionada < 0 || filaSeleccionada >= prodFiltered.length) return;
+  const p = prodFiltered[filaSeleccionada];
+  if (!p || !cart[p._id]) return;
+  if (cart[p._id].qty > 1) cart[p._id].qty -= 1;
+  else delete cart[p._id];
+  renderProductosVenta();
+  renderCart();
+}
 
 window._changeQty = function(key, delta) {
   if (!cart[key]) return;
@@ -2023,4 +2046,3 @@ document.getElementById("btnEliminarProveedor").addEventListener("click", async 
 });
 
 // Cerrar modales con Escape
-
