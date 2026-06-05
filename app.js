@@ -593,7 +593,16 @@ document.addEventListener("keydown", e => {
   const input = document.getElementById("searchInput");
   const tag   = document.activeElement?.tagName?.toLowerCase();
   const isInput = tag === "input" || tag === "textarea" || tag === "select";
+  const isInlineEdit = isInput && document.activeElement?.closest?.(".td-editable");
   const isOtherInput = isInput && document.activeElement !== input;
+
+  // Si estamos editando una celda inline — dejar pasar todo excepto Escape
+  if (isInlineEdit) {
+    if (e.key === "Escape") {
+      document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    }
+    return;
+  }
 
   const viewVenta      = document.getElementById("view-venta")?.classList.contains("active");
   const viewProductos  = document.getElementById("view-productos")?.classList.contains("active");
@@ -2157,4 +2166,3 @@ document.getElementById("btnEliminarProveedor").addEventListener("click", async 
 });
 
 // Cerrar modales con Escape
-
