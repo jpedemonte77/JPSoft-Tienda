@@ -551,6 +551,13 @@ function renderProductosVenta() {
     </tr>`;
   }).join("");
 
+  // Sincronizar prodFiltered con lo que se muestra en pantalla
+  prodFiltered = slice;
+
+  // Restaurar fila seleccionada
+  if (filaSeleccionada >= prodFiltered.length) filaSeleccionada = prodFiltered.length - 1;
+  resaltarFila();
+
   renderPagination("pagination", page, totalPages, v => { page = v; renderProductosVenta(); });
 }
 
@@ -1032,6 +1039,12 @@ document.getElementById("ventaCartItems")?.addEventListener("change", e => {
   renderModalVenta();
   renderProductosVenta();
   renderCart();
+
+  // Si el carrito quedó vacío cerrar el modal
+  if (!Object.keys(cart).length) {
+    document.getElementById("modalVenta").classList.add("hidden");
+    showToast("Venta cancelada — carrito vacío");
+  }
 });
 
 function renderModalVenta() {
@@ -2185,4 +2198,3 @@ document.getElementById("btnEliminarProveedor").addEventListener("click", async 
 });
 
 // Cerrar modales con Escape
-
