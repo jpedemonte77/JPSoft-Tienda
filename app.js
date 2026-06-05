@@ -715,7 +715,7 @@ document.addEventListener("keydown", e => {
   if (viewProductos && !isInput) {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      const filas = document.querySelectorAll("#prodTablaBody tr");
+      const filas = document.querySelectorAll("#prodTableBody tr");
       if (!filas.length) return;
       let idx = [...filas].findIndex(r => r.classList.contains("fila-activa"));
       filas.forEach(r => r.classList.remove("fila-activa"));
@@ -728,13 +728,13 @@ document.addEventListener("keydown", e => {
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      const activa = document.querySelector("#prodTablaBody tr.fila-activa");
+      const activa = document.querySelector("#prodTableBody tr.fila-activa");
       if (activa) activa.querySelector("[data-edit]")?.click();
       return;
     }
     if (e.key === "Delete") {
       e.preventDefault();
-      const activa = document.querySelector("#prodTablaBody tr.fila-activa");
+      const activa = document.querySelector("#prodTableBody tr.fila-activa");
       if (activa) activa.querySelector("[data-delete]")?.click();
       return;
     }
@@ -1680,7 +1680,7 @@ function renderProductosTabla() {
 document.getElementById("prodSearchInput")?.addEventListener("input", () => { prodPage = 1; renderProductosTabla(); });
 
 // ── Edición inline de precio de lista y stock ──
-document.getElementById("tableWrap")?.addEventListener("click", e => {
+document.querySelector(".productos-table-wrap")?.addEventListener("click", e => {
   const td = e.target.closest(".td-editable");
   if (!td || td.querySelector("input")) return; // ya está editando
 
