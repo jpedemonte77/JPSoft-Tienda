@@ -553,7 +553,8 @@ document.getElementById("btnExpCaja").addEventListener("click", () => {
         totE, totD, totC, totM,
         totE + totD + totC + totM
       ]);
-  });
+    }); // end forEach turno
+  }); // end keys.forEach
 
   if (data.length === 1) { showToast("No hay datos de caja en ese período.", "warning"); return; }
   exportarExcel([{ nombre: "Caja", data, colsMoney: [4, 6, 7, 8, 9] }], `JPSoft_QBV_Caja_${desde}_${hasta}.xlsx`);
