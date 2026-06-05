@@ -392,7 +392,7 @@ function generarReporte() {
   }
 
   // Detalle ventas
-  const metLabel = { efectivo: "Efectivo", debito: "Débito", mp: "Mercado Pago" };
+  const metLabel = { efectivo: "Efectivo", debito: "Débito", credito: "Crédito", mp: "Mercado Pago" };
   const metClass = { efectivo: "metodo-efectivo", debito: "metodo-debito", mp: "metodo-mp" };
   const detalle  = document.getElementById("reporteDetalle");
   if (!ventas.length) {
@@ -645,12 +645,12 @@ document.getElementById("btnExportarBackup").addEventListener("click", async () 
 const importZone  = document.getElementById("importBackupZone");
 const importInput = document.getElementById("importBackupInput");
 
-importZone.addEventListener("click", () => importInput.click());
-importZone.addEventListener("dragover", e => { e.preventDefault(); importZone.style.background = "var(--bg3)"; });
-importZone.addEventListener("dragleave", () => { importZone.style.background = ""; });
-importZone.addEventListener("drop", e => {
-  e.preventDefault(); importZone.style.background = "";
-  if (e.dataTransfer.files[0]) { importInput.files = e.dataTransfer.files; importInput.dispatchEvent(new Event("change")); }
+importZone?.addEventListener("click", () => importInput?.click());
+importZone?.addEventListener("dragover", e => { e.preventDefault(); if(importZone) importZone.style.background = "var(--bg3)"; });
+importZone?.addEventListener("dragleave", () => { if(importZone) importZone.style.background = ""; });
+importZone?.addEventListener("drop", e => {
+  e.preventDefault(); if(importZone) importZone.style.background = "";
+  if (e.dataTransfer.files[0] && importInput) { importInput.files = e.dataTransfer.files; importInput.dispatchEvent(new Event("change")); }
 });
 
 importInput.addEventListener("change", e => {
@@ -771,7 +771,7 @@ async function exportarBackupExcel() {
       let totE = 0, totD = 0, totM = 0;
       ventas.forEach(v => {
         if (v.metodo === "efectivo") totE += v.total||0;
-        else if (v.metodo === "debito") totD += v.total||0;
+        else if (v.metodo === "debito" || v.metodo === "credito") totD += v.total||0;
         else if (v.metodo === "mp") totM += v.total||0;
       });
       hCaja.push([fechaLabel(fecha), dia.apertura.hora||"", dia.cierre?.hora||"—", dia.apertura.turno||"", dia.apertura.fondo||0, ventas.length, totE, totD, totM, totE+totD+totM]);
