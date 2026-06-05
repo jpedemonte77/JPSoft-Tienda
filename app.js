@@ -1652,7 +1652,7 @@ async function imprimirCierreCaja() {
 
   const renderTurnoHTML = (turnoObj, label) => {
     if (!turnoObj?.apertura) return "";
-    const { totE, totD, totM, tot, ventas } = calcTotalesTurno(turnoObj);
+    const { totE, totD, totC, totM, tot, ventas } = calcTotalesTurno(turnoObj);
     const metLabel = { efectivo:"Efectivo", debito:"Débito", mp:"MP" };
     const rows = [...ventas].sort((a,b)=>(b.hora||"").localeCompare(a.hora||"")).map(v => {
       const desc = (v.items||[]).map(i=>i.desc).join(", ");
@@ -1671,8 +1671,9 @@ async function imprimirCierreCaja() {
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#555">Fondo inicial</span><span style="font-weight:500">${turnoObj.apertura.fondo ? fmt(turnoObj.apertura.fondo) : "—"}</span></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#555">Responsable</span><span style="font-weight:500">${turnoObj.apertura.admin||"—"}</span></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#1a7a50;font-weight:500">Efectivo</span><span>${fmt(totE)}</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#185fa5;font-weight:500">Débito</span><span>${fmt(totD)}</span></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#009ee3;font-weight:500">Mercado Pago</span><span>${fmt(totM)}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#185fa5;font-weight:500">Débito</span><span>${fmt(totD)}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#185fa5;font-weight:500">Crédito</span><span>${fmt(totC)}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:600;padding-top:8px;border-top:1.5px solid #111;margin-top:6px"><span>Subtotal ${label}</span><span>${fmt(tot)}</span></div>
       ${rows.length ? `
         <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#aaa;margin:12px 0 6px">Ventas (${ventas.length})</div>
@@ -1691,8 +1692,9 @@ async function imprimirCierreCaja() {
   const ttTot = calcTotalesTurno(tarde);
   const totGeneral = tmTot.tot + ttTot.tot;
   const totEG = tmTot.totE + ttTot.totE;
-  const totDG = tmTot.totD + ttTot.totD;
   const totMG = tmTot.totM + ttTot.totM;
+  const totDG = tmTot.totD + ttTot.totD;
+  const totCG = (tmTot.totC || 0) + (ttTot.totC || 0);
 
   const now = new Date().toLocaleDateString("es-AR", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
 
@@ -1708,8 +1710,9 @@ async function imprimirCierreCaja() {
       <hr style="border:none;border-top:2px solid #111;margin:16px 0" />
       <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#aaa;margin-bottom:8px">Total del día</div>
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#1a7a50;font-weight:500">Efectivo</span><span>${fmt(totEG)}</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#185fa5;font-weight:500">Débito</span><span>${fmt(totDG)}</span></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#009ee3;font-weight:500">Mercado Pago</span><span>${fmt(totMG)}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#185fa5;font-weight:500">Débito</span><span>${fmt(totDG)}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#185fa5;font-weight:500">Crédito</span><span>${fmt(totCG)}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:17px;font-weight:600;padding-top:8px;border-top:2px solid #111;margin-top:6px"><span>TOTAL GENERAL</span><span>${fmt(totGeneral)}</span></div>
 
       <div style="font-size:11px;color:#bbb;text-align:center;margin-top:1.5rem">Generado el ${now} · JPSoft | QBV</div>
