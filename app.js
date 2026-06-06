@@ -3159,18 +3159,18 @@ document.getElementById("btnExportarBackup").addEventListener("click", async () 
 });
 
 // Importar backup
-const importZone  = document.getElementById("importBackupZone");
-const importInput = document.getElementById("importBackupInput");
+const importZone2  = document.getElementById("importBackupZone");
+const importInput2 = document.getElementById("importBackupInput");
 
-importZone.addEventListener("click", () => importInput.click());
-importZone.addEventListener("dragover", e => { e.preventDefault(); importZone.style.background = "var(--bg3)"; });
-importZone.addEventListener("dragleave", () => { importZone.style.background = ""; });
-importZone.addEventListener("drop", e => {
-  e.preventDefault(); importZone.style.background = "";
-  if (e.dataTransfer.files[0]) { importInput.files = e.dataTransfer.files; importInput.dispatchEvent(new Event("change")); }
+importZone2?.addEventListener("click", () => importInput2?.click());
+importZone2?.addEventListener("dragover", e => { e.preventDefault(); if(importZone2) importZone2.style.background = "var(--bg3)"; });
+importZone2?.addEventListener("dragleave", () => { if(importZone2) importZone2.style.background = ""; });
+importZone2?.addEventListener("drop", e => {
+  e.preventDefault(); if(importZone2) importZone2.style.background = "";
+  if (e.dataTransfer.files[0] && importInput2) { importInput2.files = e.dataTransfer.files; importInput2.dispatchEvent(new Event("change")); }
 });
 
-importInput.addEventListener("change", e => {
+importInput2?.addEventListener("change", e => {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
