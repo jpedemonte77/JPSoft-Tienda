@@ -1950,24 +1950,26 @@ document.getElementById("btnImprimirListaPrecios")?.addEventListener("click", as
   try {
     const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: "#fff", width: 794 });
     const { jsPDF } = window.jspdf;
-    const pdf    = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    // Sin márgenes extra — el padding ya está en el HTML
-    const imgW   = 210;
-    const imgH   = (canvas.height * imgW) / canvas.width;
-    const pageH  = 297;
-    const pages  = Math.ceil(imgH / pageH);
+    const pdf      = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const scale    = canvas.width / 210; // px por mm
+    const pageHpx  = Math.round(297 * scale); // altura de página en px
+    const marginPx = Math.round(8 * scale);   // margen en px (8mm)
+    const contentH = pageHpx - marginPx * 2;  // área útil por página en px
+    const pages    = Math.ceil(canvas.height / contentH);
+
     for (let i = 0; i < pages; i++) {
       if (i > 0) pdf.addPage();
-      const srcY       = Math.round(i * (canvas.height / pages));
-      const srcH       = Math.round(canvas.height / pages);
+      const srcY       = i * contentH;
+      const srcH       = Math.min(contentH, canvas.height - srcY);
       const pageCanvas = document.createElement("canvas");
       pageCanvas.width  = canvas.width;
-      pageCanvas.height = srcH;
+      pageCanvas.height = pageHpx;
       const ctx = pageCanvas.getContext("2d");
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-      ctx.drawImage(canvas, 0, -srcY);
-      pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", 0, 0, imgW, pageH);
+      // Dibujar con margen superior e inferior
+      ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, marginPx, canvas.width, srcH);
+      pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297);
     }
     pdf.save(`JPSoft_QBV_Precios_${todayKey()}.pdf`);
     showToast("Lista impresa ✓", "success");
