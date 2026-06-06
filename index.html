@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="JPSoft | QBV">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<title>JPSoft | QBV</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;height:100dvh;overflow:hidden}
+body{font-family:'DM Sans',system-ui,sans-serif;background:#f7f7f8;color:#111;display:flex;justify-content:center;align-items:center;padding:1rem}
+.card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:14px;padding:2.5rem 2rem;width:100%;max-width:300px;text-align:center}
+.brand{font-size:18px;font-weight:600;color:#111;margin-bottom:6px}
+.sub{font-size:13px;color:#999;margin-bottom:2rem}
+.divider{height:1px;background:rgba(0,0,0,0.06);margin-bottom:1.5rem}
+a{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:13px 16px;border-radius:8px;text-decoration:none;border:1px solid rgba(0,0,0,0.1);background:#fff;color:#111;font-weight:500;font-size:14px;transition:all .15s}
+a:last-child{margin-bottom:0}
+a:hover{background:#f7f7f8;border-color:rgba(0,0,0,0.2)}
+a.primary{background:#111;color:#fff;border-color:#111}
+a.primary:hover{background:#333;border-color:#333}
+.arrow{font-size:16px;opacity:.5}
+a.primary .arrow{opacity:.7}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">JPSoft | QBV</div>
+  <div class="sub">Sistema de gestión para kioscos</div>
+  <a href="tienda.html" class="primary">
+    Tienda
+    <span class="arrow">→</span>
+  </a>
+  <a href="admin.html">
+    Administración
+    <span class="arrow">→</span>
+  </a>
+</div>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('SW registrado:', reg.scope))
+      .catch(err => console.warn('SW error:', err));
+  });
+}
+</script>
+</body>
+</html>
