@@ -2841,8 +2841,8 @@ document.getElementById("btnExportarPrecios")?.addEventListener("click", () => {
 //  VISTA: EXPORTAR EXCEL
 // ============================================================
 document.getElementById("btnExpVentas")?.addEventListener("click", () => {
-  const desde = document.getElementById("expVentasDesde").value;
-  const hasta = document.getElementById("expVentasHasta").value;
+  const desde = document.getElementById("expVentasDesde")?.value;
+  const hasta = document.getElementById("expVentasHasta")?.value;
   if (!desde || !hasta) { showToast("Seleccioná el rango de fechas.", "error"); return; }
 
   const keys   = dateRange(desde, hasta);
@@ -2867,8 +2867,8 @@ document.getElementById("btnExpVentas")?.addEventListener("click", () => {
 });
 
 document.getElementById("btnExpCaja")?.addEventListener("click", () => {
-  const desde = document.getElementById("expCajaDesde").value;
-  const hasta = document.getElementById("expCajaHasta").value;
+  const desde = document.getElementById("expCajaDesde")?.value;
+  const hasta = document.getElementById("expCajaHasta")?.value;
   if (!desde || !hasta) { showToast("Seleccioná el rango de fechas.", "error"); return; }
 
   const keys = dateRange(desde, hasta);
@@ -3247,5 +3247,3 @@ function renderHistorialPrecios() {
 
 document.getElementById("histFilterProv")?.addEventListener("change", renderHistorialPrecios);
 document.getElementById("histFilterProd")?.addEventListener("input",  renderHistorialPrecios);
-
-
