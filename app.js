@@ -100,6 +100,13 @@ checkConnection();
 // ============================================================
 //  ESTADO GLOBAL
 // ============================================================
+const TODOS_USUARIOS = [
+  { email: "joaquin@jpsoft-qbv.com", nombre: "Joaquín", admin: true },
+  { email: "carlos@jpsoft-qbv.com",  nombre: "Carlos",  admin: true },
+];
+const TIPO_LABEL = { general: "General", tabaco: "Tabaco 🚬", cigarrillos: "Cigarrillo 🚬" };
+const TIPO_BADGE = { general: "badge-neutral", tabaco: "b-tabaco", cigarrillos: "b-tabaco" };
+
 let allProducts   = [];
 let proveedores   = {};   // { id: { nombre, tipo, ganancia, categoria } }
 let gananciaMap   = {};   // { nombreProv: pct (0-1) }
@@ -2129,10 +2136,10 @@ document.getElementById("closeModalImport").addEventListener("click", () => {
 document.getElementById("importZone").addEventListener("click", () => document.getElementById("importFileInput").click());
 
 const importZone = document.getElementById("importZone");
-importZone2?.addEventListener("dragover", e => { e.preventDefault(); if(importZone2) importZone2.style.background = "var(--bg3)"; });
-importZone2?.addEventListener("dragleave", () => { if(importZone2) importZone2.style.background = ""; });
-importZone2?.addEventListener("drop", e => {
-  e.preventDefault(); if(importZone2) importZone2.style.background = "";
+importZone?.addEventListener("dragover", e => { e.preventDefault(); if(importZone) importZone.style.background = "var(--bg3)"; });
+importZone?.addEventListener("dragleave", () => { if(importZone) importZone.style.background = ""; });
+importZone?.addEventListener("drop", e => {
+  e.preventDefault(); if(importZone) importZone.style.background = "";
   if (e.dataTransfer.files[0]) { document.getElementById("importFileInput").files = e.dataTransfer.files; document.getElementById("importFileInput").dispatchEvent(new Event("change")); }
 });
 
@@ -2255,8 +2262,7 @@ function parseExcel(arrayBuffer) {
 //  VISTA PROVEEDORES
 // ============================================================
 
-const TIPO_LABEL = { general: "General", tabaco: "Tabaco 🚬", cigarrillos: "Cigarrillo 🚬" };
-const TIPO_BADGE = { general: "badge-neutral", tabaco: "b-tabaco", cigarrillos: "b-tabaco" };
+
 
 function renderMargenesConfig() {
   const gEl = document.getElementById("cfg-margen-general");
@@ -2424,10 +2430,7 @@ document.getElementById("btnEliminarProveedor").addEventListener("click", async 
 //  FUNCIONES ANÁLISIS Y SISTEMA (migradas desde Admin)
 // ============================================================
 
-const TODOS_USUARIOS = [
-  { email: "joaquin@jpsoft-qbv.com", nombre: "Joaquín", admin: true },
-  { email: "carlos@jpsoft-qbv.com",  nombre: "Carlos",  admin: true },
-];
+
 
 
 function getPeriodRange(periodo) {
@@ -2894,18 +2897,17 @@ document.getElementById("btnExportarBackup").addEventListener("click", async () 
 });
 
 // Importar backup
-const importZone2  = document.getElementById("importBackupZone");
-const importInput2 = document.getElementById("importBackupInput");
-
-importZone2?.addEventListener("click", () => importInput2?.click());
-importZone2?.addEventListener("dragover", e => { e.preventDefault(); if(importZone2) importZone2.style.background = "var(--bg3)"; });
-importZone2?.addEventListener("dragleave", () => { if(importZone2) importZone2.style.background = ""; });
-importZone2?.addEventListener("drop", e => {
-  e.preventDefault(); if(importZone2) importZone2.style.background = "";
-  if (e.dataTransfer.files[0]) { importInput.files = e.dataTransfer.files; importInput.dispatchEvent(new Event("change")); }
+document.getElementById("importBackupZone")?.addEventListener("click", () => document.getElementById("importBackupInput")?.click());
+document.getElementById("importBackupZone")?.addEventListener("dragover", e => { e.preventDefault(); const z=document.getElementById("importBackupZone"); if(z) z.style.background="var(--bg3)"; });
+document.getElementById("importBackupZone")?.addEventListener("dragleave", () => { const z=document.getElementById("importBackupZone"); if(z) z.style.background=""; });
+document.getElementById("importBackupZone")?.addEventListener("drop", e => {
+  e.preventDefault();
+  const z=document.getElementById("importBackupZone"); if(z) z.style.background="";
+  const inp=document.getElementById("importBackupInput");
+  if (e.dataTransfer.files[0] && inp) { inp.files = e.dataTransfer.files; inp.dispatchEvent(new Event("change")); }
 });
 
-importInput2?.addEventListener("change", e => {
+document.getElementById("importBackupInput")?.addEventListener("change", e => {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
