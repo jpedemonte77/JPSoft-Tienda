@@ -680,7 +680,13 @@ body {
 
 /* Vista venta fullscreen — tabla scrollable, barra cobrar fija */
 #view-venta {
+  display: none;
+  flex-direction: column;
   overflow: hidden;
+  padding: 0;
+}
+#view-venta.active {
+  display: flex !important;
 }
 
 #view-venta .table-wrap {
