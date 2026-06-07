@@ -454,7 +454,7 @@ function rebuildGananciaMap() {
 // ============================================================
 //  NAVEGACIÓN
 // ============================================================
-const VIEWS = { venta: "Venta", caja: "Caja", productos: "Productos", proveedores: "Proveedores" };
+const VIEWS = { venta: "Venta", caja: "Caja", productos: "Productos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial de precios", backup: "Backup" };
 
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -2526,20 +2526,9 @@ function setDefaultDates() {
 // ============================================================
 //  NAVEGACIÓN
 // ============================================================
-const VIEWS = { reportes: "Reportes", precios: "Lista de precios", exportar: "Exportar Excel", usuarios: "Usuarios", backup: "Backup", "historial-precios": "Historial de precios" };
 
-document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const view = btn.dataset.view;
-    document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    document.getElementById("view-" + view).classList.add("active");
-    document.getElementById("topbar-title").textContent = VIEWS[view] || view;
-    document.getElementById("sidebar").classList.remove("open");
-    document.getElementById("sidebar-overlay").classList.remove("open");
-  });
-});
+
+
 
 document.getElementById("menu-btn").addEventListener("click", () => {
   document.getElementById("sidebar").classList.toggle("open");
@@ -3148,5 +3137,3 @@ function renderHistorialPrecios() {
 
 document.getElementById("histFilterProv")?.addEventListener("change", renderHistorialPrecios);
 document.getElementById("histFilterProd")?.addEventListener("input",  renderHistorialPrecios);
-
-
