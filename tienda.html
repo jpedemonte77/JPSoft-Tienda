@@ -59,6 +59,10 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><line x1="5" y1="5" x2="5" y2="3"/><line x1="19" y1="19" x2="19" y2="21"/></svg>
         Gastos
       </button>
+      <button class="nav-item" data-view="clientes">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clientes
+      </button>
       <button class="nav-item" data-view="productos" style="justify-content:space-between">
         <span style="display:flex;align-items:center;gap:10px">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
@@ -346,6 +350,94 @@
           <tbody id="gastosTableBody"></tbody>
         </table>
         <div class="empty-row" id="gastosEmptyMsg" style="display:none">No hay gastos registrados para este día.</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         VISTA: CLIENTES
+    ══════════════════════════════ -->
+    <div class="view" id="view-clientes">
+      <div class="view-header">
+        <div class="view-title">Clientes</div>
+        <button class="btn-primary" id="btnNuevoCliente">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo cliente
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="clientesStatsWrap" style="margin-bottom:1rem">
+        <div class="stat-card">
+          <div class="stat-card-label">Total a cobrar</div>
+          <div class="stat-card-value" id="cStatTotal" style="color:var(--danger)">$0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Clientes con deuda</div>
+          <div class="stat-card-value" id="cStatDeudores">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Cobrado este mes</div>
+          <div class="stat-card-value" id="cStatCobrado" style="color:var(--success)">$0</div>
+        </div>
+      </div>
+
+      <!-- Layout: lista + detalle -->
+      <div style="display:grid;grid-template-columns:230px 1fr;gap:12px;align-items:start">
+
+        <!-- Lista clientes -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <div style="padding:9px 13px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text1)">Clientes</div>
+          <div id="clientesLista">
+            <div class="empty-row">No hay clientes registrados.</div>
+          </div>
+        </div>
+
+        <!-- Detalle cliente -->
+        <div id="clienteDetalle" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:none">
+          <div style="padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div id="clienteDetalleAvatar" style="width:32px;height:32px;border-radius:50%;background:#FCEBEB;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#A32D2D;flex-shrink:0"></div>
+              <div>
+                <div id="clienteDetalleNombre" style="font-size:13px;font-weight:600;color:var(--text1)"></div>
+                <div id="clienteDetalleSaldo" style="font-size:11px;color:var(--danger)"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <a id="clienteDetalleWA" href="#" target="_blank" rel="noopener" style="display:none;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--radius-sm);background:#E1F5EE;border:1px solid #9FE1CB;font-size:11.5px;color:#0F6E56;text-decoration:none">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#1D9E75"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.05 2C6.495 2 2 6.495 2 12.05c0 1.868.497 3.623 1.362 5.14L2 22l4.948-1.337A10.01 10.01 0 0 0 12.05 22C17.605 22 22 17.505 22 11.95 22 6.495 17.605 2 12.05 2zm0 18.385a8.33 8.33 0 0 1-4.239-1.158l-.304-.18-3.143.849.845-3.073-.198-.315A8.324 8.324 0 0 1 3.715 12.05c0-4.598 3.737-8.335 8.335-8.335 4.598 0 8.335 3.737 8.335 8.335 0 4.598-3.737 8.335-8.335 8.335z"/></svg>
+                Contactar
+              </a>
+              <button class="btn-primary" id="btnCobrarCliente" style="font-size:11.5px;padding:5px 10px">Cobrar</button>
+              <button class="btn-secondary" id="btnEditarCliente" style="font-size:11.5px;padding:5px 10px">Editar</button>
+              <button class="btn-danger" id="btnEliminarCliente" style="font-size:11.5px;padding:5px 8px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
+            </div>
+          </div>
+          <table>
+            <colgroup>
+              <col style="width:110px">
+              <col>
+              <col style="width:110px">
+              <col style="width:90px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th class="num">Monto</th>
+                <th style="text-align:center">Tipo</th>
+              </tr>
+            </thead>
+            <tbody id="clienteMovsBody"></tbody>
+          </table>
+          <div class="empty-row" id="clienteMovsEmpty" style="display:none">Sin movimientos registrados.</div>
+        </div>
+
+        <div id="clienteDetalleVacio" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;text-align:center;color:var(--text3);font-size:13px">
+          Seleccioná un cliente para ver su historial.
+        </div>
+
       </div>
     </div>
 
@@ -733,6 +825,7 @@
             <option value="producto">Productos</option>
             <option value="caja">Caja</option>
             <option value="gasto">Gastos</option>
+            <option value="cliente">Clientes</option>
             <option value="backup">Backup</option>
           </select>
           <select class="form-select" id="actFiltroUsuario" style="width:140px">
@@ -809,8 +902,24 @@
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Nota <span style="text-transform:none;font-weight:400;color:var(--text3)">(opcional)</span></div>
         <div style="display:flex;gap:6px;margin-bottom:7px;flex-wrap:wrap">
           <button class="nota-chip" data-nota="Fiado">Fiado</button>
-          <button class="nota-chip" data-nota="A cuenta">A cuenta</button>
+          <button class="nota-chip" data-nota="Pago">Pago</button>
           <button class="nota-chip" data-nota="Cortesía">Cortesía</button>
+        </div>
+        <!-- Selector de cliente (visible solo con Fiado o Pago) -->
+        <div id="cobroClienteWrap" style="display:none;margin-bottom:8px;background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:var(--radius-sm);padding:10px 12px">
+          <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:7px;display:flex;align-items:center;gap:5px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Cliente
+          </div>
+          <div style="display:flex;gap:7px;margin-bottom:6px">
+            <select id="cobroClienteSelect" class="form-select" style="flex:1;font-size:12.5px">
+              <option value="">Seleccioná un cliente…</option>
+            </select>
+            <button class="btn-secondary" id="btnCobroNuevoCliente" style="font-size:11px;padding:5px 9px;white-space:nowrap">+ Nuevo</button>
+          </div>
+          <div id="cobroClienteDeuda" style="font-size:11px;color:var(--danger);display:none">
+            Deuda actual: <span id="cobroClienteDeudaMonto"></span>
+          </div>
         </div>
         <input type="text" id="notaVentaInput" placeholder="O escribí una nota personalizada…" maxlength="100"
           style="width:100%;font-size:12px;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);font-family:inherit;outline:none;color:var(--text)" />
@@ -1037,6 +1146,63 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module" src="app.js"></script>
+
+<!-- ══════════════════════════════
+     MODAL: NUEVO / EDITAR CLIENTE
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalCliente">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title" id="modalClienteTitulo">Nuevo cliente</span>
+      <button class="modal-close" id="closeModalCliente">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="clienteEditId" />
+      <div class="form-group">
+        <label class="form-label">Nombre</label>
+        <input type="text" class="form-input" id="clienteNombreInput" placeholder="Ej: Martín González" maxlength="60" />
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">Teléfono <span style="font-weight:400;color:var(--text3)">(opcional · para WhatsApp)</span></label>
+        <input type="tel" class="form-input" id="clienteTelInput" placeholder="Ej: 3415551234" maxlength="20" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="btnCancelarCliente">Cancelar</button>
+      <button class="btn-primary" id="btnConfirmarCliente">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: COBRAR CLIENTE
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalCobrarCliente">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <span class="modal-title">Registrar pago</span>
+      <button class="modal-close" id="closeModalCobrarCliente">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 13px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--text3)">Deuda actual</div>
+        <div id="cobrarDeudaActual" style="font-size:15px;font-weight:600;color:var(--danger)">$0</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Monto a cobrar ($)</label>
+        <input type="number" class="form-input" id="cobrarMontoInput" placeholder="0" min="0" style="font-size:18px;font-weight:600;font-family:'DM Mono',monospace" />
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 13px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        <div style="font-size:12px;color:var(--text3)">Saldo restante</div>
+        <div id="cobrarSaldoRestante" style="font-size:14px;font-weight:600;color:var(--danger)">$0</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="btnCancelarCobrar">Cancelar</button>
+      <button class="btn-primary" id="btnConfirmarCobrar">Confirmar pago</button>
+    </div>
+  </div>
+</div>
 
 <!-- ÁREA DE IMPRESIÓN -->
 <div id="printArea"></div>
