@@ -1262,6 +1262,12 @@ document.getElementById("btnConfirmarVenta").addEventListener("click", () => {
   const notaInput = document.getElementById("notaVentaInput");
   if (notaInput) notaInput.value = "";
   document.querySelectorAll(".nota-chip").forEach(b => b.classList.remove("active"));
+  // Cerrar toggle de nota y resetear
+  const notaBody    = document.getElementById("notaToggleBody");
+  const notaChevron = document.getElementById("notaToggleChevron");
+  if (notaBody)    { notaBody.style.display = "none"; }
+  if (notaChevron) { notaChevron.style.transform = ""; }
+  actualizarCobroClienteWrap(null);
   const modalVenta = document.getElementById("modalVenta");
   modalVenta.classList.remove("hidden");
   // Forzar foco al modal para que las teclas funcionen sin click
@@ -1812,6 +1818,24 @@ function renderTurnoCard(turnoKey, turno, esHoy, manana, tarde) {
 
   return card;
 }
+
+// ── Toggle nota en panel de cobro ──
+document.getElementById("notaToggleHeader")?.addEventListener("click", () => {
+  const body    = document.getElementById("notaToggleBody");
+  const chevron = document.getElementById("notaToggleChevron");
+  const abierto = body.style.display === "flex";
+  body.style.display    = abierto ? "none" : "flex";
+  chevron.style.transform = abierto ? "" : "rotate(180deg)";
+  if (!abierto) {
+    // Al abrir: enfocar el input de nota
+    setTimeout(() => document.getElementById("notaVentaInput")?.focus(), 50);
+  } else {
+    // Al cerrar: resetear chips y selector
+    document.querySelectorAll(".nota-chip").forEach(b => b.classList.remove("active"));
+    document.getElementById("notaVentaInput").value = "";
+    actualizarCobroClienteWrap(null);
+  }
+});
 
 // ── Chips de nota en modal venta ──
 document.getElementById("modalVenta")?.addEventListener("click", e => {
