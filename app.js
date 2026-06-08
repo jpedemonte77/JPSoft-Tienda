@@ -3162,17 +3162,19 @@ document.getElementById("btnExportarListaExcel")?.addEventListener("click", () =
   const hojas = Object.entries(porProv)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([prov, prods]) => {
-      const data = [["ID", "CODIGO", "PRODUCTO", "P. LISTA"]];
+      const data = [["ID", "CODIGO", "PRODUCTO", "P. LISTA", "P. VENTA", "STOCK"]];
       prods.forEach((p, i) => {
         data.push([
           String(i + 1).padStart(3, "0"),
           p.cod || "",
           p.desc || "",
-          p.lista || 0
+          p.lista || 0,
+          Math.round(getPrecioVenta(p)),
+          p.stock ?? ""
         ]);
       });
       const nombre = prov.replace(/[:\\\/?*\[\]]/g, "").substring(0, 31);
-      return { nombre, data, colsMoney: [3] };
+      return { nombre, data, colsMoney: [3, 4] };
     });
 
   exportarExcel(hojas, `JPSoft_Tienda_Productos_${todayKey()}.xlsx`);
@@ -3233,8 +3235,11 @@ document.getElementById("btnImprimirListaPrecios")?.addEventListener("click", ()
     ${seccionesHtml}
     <div class="print-footer">JPSoft | Tienda · ${now}</div>`;
 
-  window.print();
-  setTimeout(() => { printArea.innerHTML = ""; }, 1000);
+  // Dar tiempo al navegador a repintar el DOM antes de imprimir
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { printArea.innerHTML = ""; }, 500);
+  }, 150);
 });
 
 // ── Helper exportar Excel ──
