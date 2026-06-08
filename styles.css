@@ -491,6 +491,13 @@ body {
 }
 .view.active { display: block; }
 
+#view-soporte.active {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 /* Vista Venta: layout flex especial — tabla scrollable + barra cobrar fija */
 #view-venta {
   padding: 0 !important;
@@ -1343,4 +1350,3 @@ tr.fila-activa td { background: var(--info-bg); }
   color: var(--danger);
   font-weight: 600;
 }
-
