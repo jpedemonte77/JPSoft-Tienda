@@ -7,7 +7,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import {
   getFirestore, doc, collection, setDoc, addDoc, getDoc, getDocs,
   onSnapshot, deleteDoc, updateDoc, deleteField, query, orderBy, limit,
-  enableIndexedDbPersistence
+  writeBatch, enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -432,6 +432,9 @@ function initFirebase() {
     updateCajaSidebar();
   }));
 
+  // Clientes
+  initClientesListener();
+
   // Config márgenes
   _unsubs.push(onSnapshot(doc(db, "config", "margenes"), snap => {
     if (snap.exists()) Object.assign(margenesConfig, snap.data());
@@ -471,7 +474,7 @@ function rebuildGananciaMap() {
 // ============================================================
 //  NAVEGACIÓN
 // ============================================================
-const VIEWS = { venta: "Venta", caja: "Caja", gastos: "Gastos", productos: "Productos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial de precios", actividad: "Actividad", soporte: "Soporte", backup: "Backup" };
+const VIEWS = { venta: "Venta", caja: "Caja", gastos: "Gastos", clientes: "Clientes", productos: "Productos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial de precios", actividad: "Actividad", soporte: "Soporte", backup: "Backup" };
 
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -532,11 +535,12 @@ function renderActividad() {
     producto:  { cls: "color:#633806;background:#FAEEDA", label: "Producto" },
     caja:      { cls: "color:#3C3489;background:#EEEDFE", label: "Caja" },
     gasto:     { cls: "color:#7a3a00;background:#fef0e0", label: "Gasto" },
+    cliente:   { cls: "color:#185FA5;background:#E6F1FB", label: "Cliente" },
     backup:    { cls: "color:var(--text2);background:var(--surface2)", label: "Backup" },
   };
   const TIPO_DOT = {
     venta: "#1a7a50", anulacion: "#c0391a", precio: "#185fa5",
-    producto: "#92580a", caja: "#7f77dd", gasto: "#c06a00", backup: "#888"
+    producto: "#92580a", caja: "#7f77dd", gasto: "#c06a00", cliente: "#185FA5", backup: "#888"
   };
 
   function fmtTs(ts) {
@@ -1433,6 +1437,17 @@ async function confirmarVentaFinal() {
   const _itemsDesc = items.map(i => i.desc).join(", ");
   registrarLog("venta", `Venta registrada — ${fmt(Math.round(total))} · ${_itemsDesc}`);
 
+  // Vincular cliente si es Fiado o Pago
+  const chipActivo = document.querySelector(".nota-chip.active");
+  if (chipActivo) {
+    const notaChip = chipActivo.dataset.nota;
+    if (notaChip === "Fiado") {
+      registrarMovimientoCliente("fiado", Math.round(total), ventaId, _notaVenta || "Venta fiada");
+    } else if (notaChip === "Pago") {
+      registrarMovimientoCliente("pago", Math.round(total), ventaId, _notaVenta || "Pago");
+    }
+  }
+
   // 2. Cerrar modal y limpiar carrito INMEDIATAMENTE
   Object.keys(cart).forEach(k => delete cart[k]);
   descuentoValor = 0;
@@ -1801,10 +1816,12 @@ document.getElementById("modalVenta")?.addEventListener("click", e => {
   if (chip.classList.contains("active")) {
     chip.classList.remove("active");
     if (input) input.value = "";
+    actualizarCobroClienteWrap(null);
   } else {
     document.querySelectorAll(".nota-chip").forEach(b => b.classList.remove("active"));
     chip.classList.add("active");
     if (input) input.value = chip.dataset.nota;
+    actualizarCobroClienteWrap(chip.dataset.nota);
   }
 });
 
@@ -3578,6 +3595,350 @@ document.getElementById("histFilterProd")?.addEventListener("input",  renderHist
 
 document.getElementById("actFiltroTipo")?.addEventListener("change", renderActividad);
 document.getElementById("actFiltroUsuario")?.addEventListener("change", renderActividad);
+
+// ============================================================
+//  CLIENTES
+// ============================================================
+let clientesData    = {};
+let clienteActivoId = null;
+
+// ── Helpers ──
+function getIniciales(nombre) {
+  return nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0].toUpperCase()).join("");
+}
+function getAvatarColor(nombre) {
+  const colors = [
+    { bg: "#FCEBEB", color: "#A32D2D" },
+    { bg: "#FAEEDA", color: "#854F0B" },
+    { bg: "#E6F1FB", color: "#185FA5" },
+    { bg: "#EAF3DE", color: "#3B6D11" },
+    { bg: "#EEEDFE", color: "#3C3489" },
+    { bg: "#E1F5EE", color: "#0F6E56" },
+  ];
+  let hash = 0;
+  for (const c of nombre) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
+  return colors[Math.abs(hash) % colors.length];
+}
+
+// ── Render lista ──
+function renderClientesLista() {
+  const lista = document.getElementById("clientesLista");
+  if (!lista) return;
+  const clientes = Object.entries(clientesData).sort((a, b) => (a[1].nombre || "").localeCompare(b[1].nombre || ""));
+
+  // Stats
+  let totalDeuda = 0, deudores = 0;
+  clientes.forEach(([, c]) => { if ((c.saldo || 0) < 0) { totalDeuda += Math.abs(c.saldo); deudores++; } });
+  document.getElementById("cStatTotal").textContent   = fmt(totalDeuda);
+  document.getElementById("cStatDeudores").textContent = deudores;
+
+  if (!clientes.length) {
+    lista.innerHTML = '<div class="empty-row">No hay clientes registrados.</div>';
+    return;
+  }
+
+  lista.innerHTML = clientes.map(([id, c]) => {
+    const saldo  = c.saldo || 0;
+    const av     = getAvatarColor(c.nombre || "?");
+    const inic   = getIniciales(c.nombre || "?");
+    const saldoTxt = saldo < 0 ? `<span style="color:#A32D2D">${fmt(Math.abs(saldo))}</span>`
+                   : saldo > 0 ? `<span style="color:#3B6D11">A favor: ${fmt(saldo)}</span>`
+                   : `<span style="color:var(--text3)">Sin deuda</span>`;
+    return `<div class="cliente-row${clienteActivoId === id ? ' active' : ''}" data-id="${id}">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="cliente-avatar" style="background:${av.bg};color:${av.color}">${inic}</div>
+        <div>
+          <div style="font-size:12.5px;font-weight:500;color:var(--text1)">${c.nombre}</div>
+          <div style="font-size:11px">${saldoTxt}</div>
+        </div>
+      </div>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>`;
+  }).join("");
+
+  // Cobrado este mes
+  const hoy   = new Date();
+  const mesIni = new Date(hoy.getFullYear(), hoy.getMonth(), 1).getTime();
+  let cobrado = 0;
+  clientes.forEach(([id]) => {
+    const movs = clientesData[id]?.movimientos || {};
+    Object.values(movs).forEach(m => {
+      if (m.tipo === "pago" && m.fecha >= mesIni) cobrado += m.monto || 0;
+    });
+  });
+  document.getElementById("cStatCobrado").textContent = fmt(cobrado);
+}
+
+// ── Render detalle ──
+function renderClienteDetalle(id) {
+  clienteActivoId = id;
+  const c = clientesData[id];
+  if (!c) return;
+
+  const av   = getAvatarColor(c.nombre || "?");
+  const inic = getIniciales(c.nombre || "?");
+  const saldo = c.saldo || 0;
+
+  document.getElementById("clienteDetalleAvatar").textContent = inic;
+  document.getElementById("clienteDetalleAvatar").style.background = av.bg;
+  document.getElementById("clienteDetalleAvatar").style.color      = av.color;
+  document.getElementById("clienteDetalleNombre").textContent = c.nombre;
+  document.getElementById("clienteDetalleSaldo").textContent  =
+    saldo < 0 ? `Deuda: ${fmt(Math.abs(saldo))}` :
+    saldo > 0 ? `A favor: ${fmt(saldo)}` : "Sin deuda";
+  document.getElementById("clienteDetalleSaldo").style.color =
+    saldo < 0 ? "var(--danger)" : saldo > 0 ? "var(--success)" : "var(--text3)";
+
+  // WhatsApp
+  const waBtn = document.getElementById("clienteDetalleWA");
+  if (c.telefono) {
+    const tel = c.telefono.replace(/\D/g, "");
+    waBtn.href = `https://wa.me/54${tel}`;
+    waBtn.style.display = "flex";
+  } else {
+    waBtn.style.display = "none";
+  }
+
+  // Movimientos
+  const movs = Object.entries(c.movimientos || {}).sort((a, b) => (b[1].fecha || 0) - (a[1].fecha || 0));
+  const tbody = document.getElementById("clienteMovsBody");
+  const empty = document.getElementById("clienteMovsEmpty");
+
+  if (!movs.length) {
+    tbody.innerHTML = "";
+    empty.style.display = "block";
+  } else {
+    empty.style.display = "none";
+    const TIPO_STYLE = {
+      fiado: { bg: "#FCEBEB", color: "#A32D2D", label: "Fiado" },
+      pago:  { bg: "#EAF3DE", color: "#3B6D11", label: "Pago" },
+    };
+    tbody.innerHTML = movs.map(([, m]) => {
+      const st    = TIPO_STYLE[m.tipo] || { bg: "var(--surface2)", color: "var(--text2)", label: m.tipo };
+      const signo = m.tipo === "pago" ? "-" : "+";
+      const col   = m.tipo === "pago" ? "#3B6D11" : "#A32D2D";
+      const fecha = m.fecha ? new Date(m.fecha).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+      return `<tr>
+        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">${fecha}</td>
+        <td style="font-size:12.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.concepto || "—"}</td>
+        <td class="num" style="font-weight:600;color:${col}">${signo}${fmt(m.monto || 0)}</td>
+        <td style="text-align:center"><span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:10px;background:${st.bg};color:${st.color}">${st.label}</span></td>
+      </tr>`;
+    }).join("");
+  }
+
+  document.getElementById("clienteDetalle").style.display      = "block";
+  document.getElementById("clienteDetalleVacio").style.display = "none";
+  renderClientesLista();
+}
+
+// Delegación en lista
+document.getElementById("clientesLista")?.addEventListener("click", e => {
+  const row = e.target.closest(".cliente-row");
+  if (row) renderClienteDetalle(row.dataset.id);
+});
+
+// ── Firestore listener ──
+function initClientesListener() {
+  onSnapshot(collection(db, "clientes"), snap => {
+    clientesData = {};
+    snap.forEach(d => {
+      clientesData[d.id] = { ...d.data(), movimientos: {} };
+    });
+    // Cargar subcolecciones de movimientos
+    const promises = snap.docs.map(d =>
+      getDocs(collection(db, "clientes", d.id, "movimientos")).then(mSnap => {
+        clientesData[d.id].movimientos = {};
+        mSnap.forEach(m => { clientesData[d.id].movimientos[m.id] = m.data(); });
+      })
+    );
+    Promise.all(promises).then(() => {
+      renderClientesLista();
+      if (clienteActivoId && clientesData[clienteActivoId]) renderClienteDetalle(clienteActivoId);
+    });
+  });
+}
+
+// ── Modal nuevo/editar cliente ──
+function abrirModalCliente(id = null) {
+  const c = id ? clientesData[id] : null;
+  document.getElementById("clienteEditId").value       = id || "";
+  document.getElementById("modalClienteTitulo").textContent = id ? "Editar cliente" : "Nuevo cliente";
+  document.getElementById("clienteNombreInput").value  = c?.nombre || "";
+  document.getElementById("clienteTelInput").value     = c?.telefono || "";
+  document.getElementById("btnConfirmarCliente").textContent = id ? "Guardar cambios" : "Guardar";
+  document.getElementById("modalCliente").classList.remove("hidden");
+  setTimeout(() => document.getElementById("clienteNombreInput").focus(), 80);
+}
+function cerrarModalCliente() {
+  document.getElementById("modalCliente").classList.add("hidden");
+}
+document.getElementById("btnNuevoCliente")?.addEventListener("click",  () => abrirModalCliente());
+document.getElementById("btnEditarCliente")?.addEventListener("click", () => { if (clienteActivoId) abrirModalCliente(clienteActivoId); });
+document.getElementById("closeModalCliente")?.addEventListener("click",  cerrarModalCliente);
+document.getElementById("btnCancelarCliente")?.addEventListener("click", cerrarModalCliente);
+
+document.getElementById("btnConfirmarCliente")?.addEventListener("click", async () => {
+  const nombre = document.getElementById("clienteNombreInput").value.trim();
+  if (!nombre) { showToast("Ingresá un nombre.", "error"); return; }
+  const tel  = document.getElementById("clienteTelInput").value.trim();
+  const id   = document.getElementById("clienteEditId").value;
+
+  if (id) {
+    await updateDoc(doc(db, "clientes", id), { nombre, telefono: tel });
+    registrarLog("cliente", `Cliente editado — ${nombre}`);
+    showToast("Cliente actualizado ✓", "success");
+  } else {
+    const nuevoRef = doc(collection(db, "clientes"));
+    await setDoc(nuevoRef, { nombre, telefono: tel, saldo: 0, creado: Date.now(), ultimoMov: Date.now() });
+    registrarLog("cliente", `Cliente creado — ${nombre}`);
+    showToast(`Cliente creado ✓ — ${nombre}`, "success");
+  }
+  cerrarModalCliente();
+});
+
+// ── Eliminar cliente ──
+document.getElementById("btnEliminarCliente")?.addEventListener("click", async () => {
+  if (!clienteActivoId) return;
+  const c = clientesData[clienteActivoId];
+  if (!confirm(`¿Eliminar a ${c?.nombre}?\n\nSe eliminarán todos sus movimientos. Esta acción no se puede deshacer.`)) return;
+
+  // Borrar subcolección movimientos
+  const mSnap = await getDocs(collection(db, "clientes", clienteActivoId, "movimientos"));
+  const batch = writeBatch(db);
+  mSnap.forEach(d => batch.delete(d.ref));
+  batch.delete(doc(db, "clientes", clienteActivoId));
+  await batch.commit();
+
+  registrarLog("cliente", `Cliente eliminado — ${c?.nombre}`);
+  showToast("Cliente eliminado ✓", "success");
+  clienteActivoId = null;
+  document.getElementById("clienteDetalle").style.display      = "none";
+  document.getElementById("clienteDetalleVacio").style.display = "block";
+});
+
+// ── Modal cobrar ──
+function abrirModalCobrar() {
+  if (!clienteActivoId) return;
+  const saldo = clientesData[clienteActivoId]?.saldo || 0;
+  const deuda = saldo < 0 ? Math.abs(saldo) : 0;
+  document.getElementById("cobrarDeudaActual").textContent  = fmt(deuda);
+  document.getElementById("cobrarSaldoRestante").textContent = fmt(deuda);
+  document.getElementById("cobrarMontoInput").value = "";
+  document.getElementById("modalCobrarCliente").classList.remove("hidden");
+  setTimeout(() => document.getElementById("cobrarMontoInput").focus(), 80);
+}
+function cerrarModalCobrar() {
+  document.getElementById("modalCobrarCliente").classList.add("hidden");
+}
+document.getElementById("btnCobrarCliente")?.addEventListener("click",        abrirModalCobrar);
+document.getElementById("closeModalCobrarCliente")?.addEventListener("click", cerrarModalCobrar);
+document.getElementById("btnCancelarCobrar")?.addEventListener("click",       cerrarModalCobrar);
+
+document.getElementById("cobrarMontoInput")?.addEventListener("input", () => {
+  const monto = parseFloat(document.getElementById("cobrarMontoInput").value) || 0;
+  const saldo = clientesData[clienteActivoId]?.saldo || 0;
+  const deuda = saldo < 0 ? Math.abs(saldo) : 0;
+  const restante = deuda - monto;
+  const el = document.getElementById("cobrarSaldoRestante");
+  el.textContent = fmt(Math.max(0, restante));
+  el.style.color = restante <= 0 ? "var(--success)" : "var(--danger)";
+});
+
+document.getElementById("btnConfirmarCobrar")?.addEventListener("click", async () => {
+  const monto = parseFloat(document.getElementById("cobrarMontoInput").value);
+  if (isNaN(monto) || monto <= 0) { showToast("Ingresá un monto válido.", "error"); return; }
+
+  const c      = clientesData[clienteActivoId];
+  const saldoActual = c?.saldo || 0;
+  const nuevoSaldo  = saldoActual + monto; // pago suma (saldo negativo se reduce)
+
+  // Guardar movimiento
+  const movRef = doc(collection(db, "clientes", clienteActivoId, "movimientos"));
+  await setDoc(movRef, { tipo: "pago", monto: Math.round(monto), concepto: "Pago", fecha: Date.now(), admin: getNombreUsuario() });
+  await updateDoc(doc(db, "clientes", clienteActivoId), { saldo: nuevoSaldo, ultimoMov: Date.now() });
+
+  registrarLog("cliente", `Pago registrado — ${fmt(Math.round(monto))} · ${c?.nombre}`);
+  showToast(`Pago registrado ✓ — ${fmt(Math.round(monto))}`, "success");
+  cerrarModalCobrar();
+});
+
+document.getElementById("modalCobrarCliente")?.addEventListener("keydown", e => {
+  if (e.key === "Enter" && document.activeElement?.id === "cobrarMontoInput") {
+    e.preventDefault(); document.getElementById("btnConfirmarCobrar")?.click();
+  }
+  if (e.key === "Escape") cerrarModalCobrar();
+});
+
+// ── Selector de cliente en panel de cobro ──
+function actualizarSelectorClientes() {
+  const sel = document.getElementById("cobroClienteSelect");
+  if (!sel) return;
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Seleccioná un cliente…</option>';
+  Object.entries(clientesData)
+    .sort((a, b) => (a[1].nombre || "").localeCompare(b[1].nombre || ""))
+    .forEach(([id, c]) => {
+      const opt = document.createElement("option");
+      opt.value = id; opt.textContent = c.nombre;
+      if (id === actual) opt.selected = true;
+      sel.appendChild(opt);
+    });
+}
+
+document.getElementById("cobroClienteSelect")?.addEventListener("change", () => {
+  const id    = document.getElementById("cobroClienteSelect").value;
+  const wrap  = document.getElementById("cobroClienteDeuda");
+  const monto = document.getElementById("cobroClienteDeudaMonto");
+  if (id && clientesData[id]) {
+    const saldo = clientesData[id].saldo || 0;
+    if (saldo < 0) {
+      monto.textContent = fmt(Math.abs(saldo));
+      wrap.style.display = "block";
+    } else {
+      wrap.style.display = "none";
+    }
+  } else {
+    wrap.style.display = "none";
+  }
+});
+
+// Mostrar/ocultar selector según chip seleccionado
+function actualizarCobroClienteWrap(notaActiva) {
+  const wrap = document.getElementById("cobroClienteWrap");
+  if (!wrap) return;
+  if (notaActiva === "Fiado" || notaActiva === "Pago") {
+    actualizarSelectorClientes();
+    wrap.style.display = "block";
+  } else {
+    wrap.style.display = "none";
+  }
+}
+
+// Botón nuevo cliente desde panel de cobro
+document.getElementById("btnCobroNuevoCliente")?.addEventListener("click", () => {
+  abrirModalCliente();
+});
+
+// ── Vincular cliente al confirmar venta ──
+// Esta función se llama desde confirmarVentaFinal cuando hay Fiado o Pago
+async function registrarMovimientoCliente(tipo, monto, ventaId, nota) {
+  const clienteId = document.getElementById("cobroClienteSelect")?.value;
+  if (!clienteId) return;
+  const c = clientesData[clienteId];
+  if (!c) return;
+
+  const saldoActual = c.saldo || 0;
+  const nuevoSaldo  = tipo === "fiado" ? saldoActual - monto : saldoActual + monto;
+
+  const movRef = doc(collection(db, "clientes", clienteId, "movimientos"));
+  await setDoc(movRef, {
+    tipo, monto: Math.round(monto),
+    concepto: nota || (tipo === "fiado" ? "Venta fiada" : "Pago"),
+    ventaId, fecha: Date.now(), admin: getNombreUsuario()
+  });
+  await updateDoc(doc(db, "clientes", clienteId), { saldo: nuevoSaldo, ultimoMov: Date.now() });
+}
 
 // ============================================================
 //  GASTOS DE CAJA
