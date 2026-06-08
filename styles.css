@@ -230,8 +230,8 @@ body {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 0.65rem 0.75rem;
+  gap: 2px;
+  padding: 0.75rem 0.75rem;
   flex: 1;
 }
 
@@ -239,11 +239,11 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.75rem;
   border-radius: var(--radius-sm);
   color: var(--text2);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 500;
   transition: background var(--transition), color var(--transition);
   cursor: pointer;
