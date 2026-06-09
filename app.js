@@ -860,6 +860,18 @@ document.addEventListener("keydown", e => {
     return;
   }
 
+  // ── Ctrl+Delete — vaciar carrito ──
+  if (e.key === "Delete" && e.ctrlKey && viewVenta) {
+    e.preventDefault();
+    if (Object.keys(cart).length === 0) return;
+    if (!confirm("¿Vaciar el carrito?")) return;
+    Object.keys(cart).forEach(k => delete cart[k]);
+    renderCart();
+    renderCartLateral();
+    renderProductosVenta();
+    return;
+  }
+
   // Delete/Backspace — solo funcionan nativamente en el buscador (borrar caracteres)
 
   // ── ESCAPE — cerrar modales ──
