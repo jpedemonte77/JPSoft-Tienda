@@ -3757,7 +3757,13 @@ function switchHistTab(tab) {
   if (tab === "ventas")      renderHistorialVentas();
   if (tab === "gastos")      renderHistorialGastos();
   if (tab === "anulaciones") renderHistorialAnulaciones();
-  if (tab === "descuentos")  renderHistorialDescuentos();
+  if (tab === "descuentos") {
+    if (histPeriodoActivo === "7") {
+      histPeriodoActivo = "mes";
+      document.querySelectorAll(".hist-periodo").forEach(b => b.classList.toggle("active", b.dataset.periodo === "mes"));
+    }
+    renderHistorialDescuentos();
+  }
 }
 
 document.getElementById("histTabPrecios")?.addEventListener("click",     () => switchHistTab("precios"));
@@ -4002,8 +4008,9 @@ function renderHistorialDescuentos() {
     ["manana", "tarde"].forEach(turno => {
       const ventas = diaData[turno]?.ventas || {};
       Object.values(ventas).forEach(v => {
-        if (!v.descuento || v.descuento <= 0) return;
-        lista.push({ ...v, fecha });
+        const desc = parseFloat(v.descuento) || 0;
+        if (desc <= 0) return;
+        lista.push({ ...v, descuento: desc, fecha });
       });
     });
   });
