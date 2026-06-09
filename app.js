@@ -497,7 +497,7 @@ document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
     document.getElementById("sidebar").classList.remove("open");
     document.getElementById("sidebar-overlay").classList.remove("open");
     // Renders específicos por vista
-    if (view === "historial-precios") renderHistorialPrecios();
+    if (view === "historial-precios") { renderHistorialPrecios(); renderHistorialVentas(); }
     if (view === "actividad")         renderActividad();
     if (view === "gastos")            renderGastos();
     if (view === "clientes")          renderClientesLista();
@@ -3745,7 +3745,7 @@ document.getElementById("histFilterProv")?.addEventListener("change", () => { re
 document.getElementById("histFilterProd")?.addEventListener("input",  () => { renderHistorialPrecios(); renderHistorialVentas(); });
 
 // ── Pestañas del Historial ──
-let histTabActiva   = "precios";
+let histTabActiva   = "ventas";
 let histPeriodoActivo = "7";
 
 function switchHistTab(tab) {
@@ -4971,4 +4971,103 @@ document.getElementById("btnConfirmarCompra")?.addEventListener("click", async (
   registrarLog("compra", `Compra registrada — ${fmt(total)} · ${prov}`);
   showToast(`Compra registrada ✓ — ${fmt(total)}`, "success");
   cerrarModalCompra();
+});
+
+// ── Exportar Compras Excel ──
+document.getElementById("btnExportarComprasExcel")?.addEventListener("click", () => {
+  if (!comprasData.length) { showToast("No hay compras para exportar.", "warning"); return; }
+
+  const lista = [...comprasData].sort((a, b) => (b.ts || "").localeCompare(a.ts || ""));
+  const data  = [["Fecha", "Hora", "Proveedor", "Productos", "Total", "Nota", "Usuario"]];
+  lista.forEach(c => {
+    const [fy, fm, fd] = (c.fecha || "").split("-");
+    const fechaFmt  = c.fecha ? `${parseInt(fd)}/${parseInt(fm)}/${fy}` : "—";
+    const hora      = c.ts ? new Date(c.ts).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "—";
+    const productos = (c.items || []).map(i => `${i.desc} ×${i.qty} ($${i.precio})`).join("; ") || "—";
+    data.push([fechaFmt, hora, c.proveedor || "—", productos, c.total || 0, c.nota || "", c.admin || "—"]);
+  });
+
+  exportarExcel([{ nombre: "Compras", data, colsMoney: [4] }], `JPSoft_Tienda_Compras_${todayKey()}.xlsx`);
+});
+
+// ── Imprimir Compras PDF ──
+document.getElementById("btnImprimirComprasPDF")?.addEventListener("click", async () => {
+  if (!comprasData.length) { showToast("No hay compras para imprimir.", "warning"); return; }
+
+  const lista    = [...comprasData].sort((a, b) => (b.ts || "").localeCompare(a.ts || ""));
+  const now      = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const totalGen = lista.reduce((s, c) => s + (c.total || 0), 0);
+
+  const filas = lista.map(c => {
+    const [fy, fm, fd] = (c.fecha || "").split("-");
+    const fechaFmt  = c.fecha ? `${parseInt(fd)}/${parseInt(fm)}/${fy}` : "—";
+    const hora      = c.ts ? new Date(c.ts).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "—";
+    const productos = (c.items || []).map(i => `${i.desc} ×${i.qty}`).join(", ") || "—";
+    return `<tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:5px 8px;font-family:monospace;font-size:11px;color:#888">${fechaFmt}</td>
+      <td style="padding:5px 8px;font-family:monospace;font-size:11px;color:#888">${hora}</td>
+      <td style="padding:5px 8px;font-size:12px;font-weight:500">${c.proveedor || "—"}</td>
+      <td style="padding:5px 8px;font-size:12px;color:#444">${productos}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:600">${fmt(c.total || 0)}</td>
+      <td style="padding:5px 8px;font-size:11px;color:#888">${c.admin || "—"}</td>
+    </tr>`;
+  }).join("");
+
+  const content = `
+    <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#111;padding:2rem;max-width:620px;margin:0 auto">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div style="font-size:18px;font-weight:600">JPSoft | Tienda</div>
+        <div style="font-size:11px;color:#888;text-align:right">Generado el ${now}</div>
+      </div>
+      <div style="font-size:12px;color:#888;margin-bottom:1.25rem">Registro de compras</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:#f5f5f5;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Fecha</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Hora</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Proveedor</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Productos</th>
+            <th style="padding:6px 8px;text-align:right;font-weight:500;border-bottom:1px solid #eee">Total</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Usuario</th>
+          </tr>
+        </thead>
+        <tbody>${filas}</tbody>
+        <tfoot>
+          <tr style="border-top:2px solid #111">
+            <td colspan="4" style="padding:8px 8px;font-weight:600;font-size:13px">TOTAL</td>
+            <td style="padding:8px 8px;text-align:right;font-weight:700;font-size:15px">${fmt(totalGen)}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+
+  const btn  = document.getElementById("btnImprimirComprasPDF");
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.textContent = "Generando…";
+
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;left:-9999px;top:0;width:660px;background:#fff";
+  container.innerHTML = content;
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: "#fff" });
+    const { jsPDF } = window.jspdf;
+    const pdf  = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const imgW = 210;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    const pages = Math.ceil(imgH / 297);
+    for (let i = 0; i < pages; i++) {
+      if (i > 0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, -i * 297, imgW, imgH);
+    }
+    pdf.save(`JPSoft_Tienda_Compras_${todayKey()}.pdf`);
+    showToast("PDF generado ✓", "success");
+  } catch(err) {
+    showToast("Error al generar PDF: " + err.message, "error");
+  } finally {
+    document.body.removeChild(container);
+    btn.disabled = false; btn.innerHTML = orig;
+  }
 });
