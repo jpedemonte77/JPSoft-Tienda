@@ -3903,8 +3903,10 @@ function renderHistorialGastos() {
   });
 
   const CAT_STYLE = {
-    "Retiro":           "color:#7a3a00;background:#fef0e0",
+    "Pago de impuesto": "color:#3C3489;background:#EEEDFE",
     "Pago de servicio": "color:#0C447C;background:#E6F1FB",
+    "Insumo":           "color:#27500A;background:#EAF3DE",
+    "Retiro":           "color:#7a3a00;background:#fef0e0",
     "Otro":             "color:var(--text2);background:var(--surface2)",
     "Pago proveedor":   "color:#0C447C;background:#E6F1FB",
     "Insumos":          "color:#27500A;background:#EAF3DE",
@@ -4395,7 +4397,7 @@ async function registrarMovimientoCliente(tipo, monto, ventaId, nota) {
 // ============================================================
 //  GASTOS DE CAJA
 // ============================================================
-let gastoCatActiva  = "Retiro";
+let gastoCatActiva  = "Pago de impuesto";
 let gastoFechaKey   = todayKey();
 let gastoEditando   = null; // null = nuevo, string = id del gasto a editar
 
@@ -4406,7 +4408,7 @@ function getGastos(fechaKey) {
 
 function calcTotalesGastos(fechaKey) {
   const gastos = Object.entries(getGastos(fechaKey)).map(([id, g]) => ({ ...g, _id: id }));
-  const tots = { Retiro: 0, "Pago de servicio": 0, Otro: 0 };
+  const tots = { "Pago de impuesto": 0, "Pago de servicio": 0, Insumo: 0, Retiro: 0, Otro: 0 };
   let total = 0;
   gastos.forEach(g => {
     tots[g.cat] = (tots[g.cat] || 0) + (g.monto || 0);
@@ -4428,8 +4430,10 @@ function renderGastos() {
     statsWrap.classList.remove("hidden");
     document.getElementById("gStatTotal").textContent    = fmt(total);
     document.getElementById("gStatCant").textContent     = gastos.length + (gastos.length === 1 ? " gasto" : " gastos");
-    document.getElementById("gStatRetiro").textContent   = fmt(tots["Retiro"] || 0);
+    document.getElementById("gStatPagoImp").textContent  = fmt(tots["Pago de impuesto"] || 0);
     document.getElementById("gStatPagoServ").textContent = fmt(tots["Pago de servicio"] || 0);
+    document.getElementById("gStatInsumo").textContent   = fmt(tots["Insumo"] || 0);
+    document.getElementById("gStatRetiro").textContent   = fmt(tots["Retiro"] || 0);
     document.getElementById("gStatOtro").textContent     = fmt(tots["Otro"] || 0);
   } else {
     statsWrap.classList.add("hidden");
@@ -4447,8 +4451,10 @@ function renderGastos() {
   empty.style.display = "none";
 
   const CAT_BADGE = {
-    "Retiro":           "color:#7a3a00;background:#fef0e0",
+    "Pago de impuesto": "color:#3C3489;background:#EEEDFE",
     "Pago de servicio": "color:#0C447C;background:#E6F1FB",
+    "Insumo":           "color:#27500A;background:#EAF3DE",
+    "Retiro":           "color:#7a3a00;background:#fef0e0",
     "Otro":             "color:var(--text2);background:var(--surface2)",
     "Pago proveedor":   "color:#0C447C;background:#E6F1FB",
     "Insumos":          "color:#27500A;background:#EAF3DE",
@@ -4522,7 +4528,7 @@ function abrirModalGasto(id = null, gasto = null) {
   document.getElementById("gastoEditId").value = id || "";
 
   // Precargar datos si es edición
-  gastoCatActiva = gasto?.cat || "Retiro";
+  gastoCatActiva = gasto?.cat || "Pago de impuesto";
   document.querySelectorAll(".gasto-chip").forEach(b => {
     b.classList.toggle("active", b.dataset.cat === gastoCatActiva);
   });
