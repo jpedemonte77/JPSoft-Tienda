@@ -3735,22 +3735,27 @@ function switchHistTab(tab) {
   histTabActiva = tab;
   document.getElementById("histTabPrecios")?.classList.toggle("active", tab === "precios");
   document.getElementById("histTabVentas")?.classList.toggle("active",  tab === "ventas");
+  document.getElementById("histTabGastos")?.classList.toggle("active",  tab === "gastos");
   document.getElementById("histPanelPrecios").style.display = tab === "precios" ? "block" : "none";
   document.getElementById("histPanelVentas").style.display  = tab === "ventas"  ? "block" : "none";
+  document.getElementById("histPanelGastos").style.display  = tab === "gastos"  ? "block" : "none";
   const pw = document.getElementById("histVentasPeriodoWrap");
-  if (pw) { pw.style.display = tab === "ventas" ? "flex" : "none"; }
+  if (pw) pw.style.display = (tab === "ventas" || tab === "gastos") ? "flex" : "none";
   if (tab === "ventas") renderHistorialVentas();
+  if (tab === "gastos") renderHistorialGastos();
 }
 
 document.getElementById("histTabPrecios")?.addEventListener("click", () => switchHistTab("precios"));
 document.getElementById("histTabVentas")?.addEventListener("click",  () => switchHistTab("ventas"));
+document.getElementById("histTabGastos")?.addEventListener("click",  () => switchHistTab("gastos"));
 
 document.querySelectorAll(".hist-periodo").forEach(btn => {
   btn.addEventListener("click", () => {
     histPeriodoActivo = btn.dataset.periodo;
     document.querySelectorAll(".hist-periodo").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    renderHistorialVentas();
+    if (histTabActiva === "ventas") renderHistorialVentas();
+    if (histTabActiva === "gastos") renderHistorialGastos();
   });
 });
 
@@ -3829,6 +3834,65 @@ function renderHistorialVentas() {
       <td class="num" style="font-weight:500">${fmt(Math.round(p.total))}</td>
       <td class="num" style="color:var(--text2)">${fmt(Math.round(p.precioVenta))}</td>
       <td style="font-size:12px;color:var(--text2);font-family:'DM Mono',monospace">${fechaFmt}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ── Render historial de gastos ──
+function renderHistorialGastos() {
+  const tbody = document.getElementById("histGastosBody");
+  if (!tbody) return;
+
+  // Calcular rango según período activo
+  const hoy = new Date();
+  let desde;
+  if (histPeriodoActivo === "7")        { desde = new Date(hoy); desde.setDate(hoy.getDate() - 6); }
+  else if (histPeriodoActivo === "30")  { desde = new Date(hoy); desde.setDate(hoy.getDate() - 29); }
+  else if (histPeriodoActivo === "mes") { desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1); }
+  else                                  { desde = new Date(hoy.getFullYear(), 0, 1); }
+  const desdeKey = desde.toISOString().slice(0, 10);
+  const hoyKey   = hoy.toISOString().slice(0, 10);
+
+  // Recolectar gastos de cajaData
+  const gastos = [];
+  Object.entries(cajaData).forEach(([fecha, diaData]) => {
+    if (fecha < desdeKey || fecha > hoyKey) return;
+    const gs = diaData.gastos || {};
+    Object.values(gs).forEach(g => {
+      gastos.push({ ...g, fecha });
+    });
+  });
+
+  if (!gastos.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-row">No hay gastos en el período seleccionado.</td></tr>`;
+    return;
+  }
+
+  // Ordenar por fecha y hora descendente
+  gastos.sort((a, b) => {
+    const fa = `${a.fecha} ${a.hora || ""}`;
+    const fb = `${b.fecha} ${b.hora || ""}`;
+    return fb.localeCompare(fa);
+  });
+
+  const CAT_STYLE = {
+    "Retiro":         "color:#7a3a00;background:#fef0e0",
+    "Pago proveedor": "color:#0C447C;background:#E6F1FB",
+    "Insumos":        "color:#27500A;background:#EAF3DE",
+    "Otro":           "color:var(--text2);background:var(--surface2)",
+  };
+
+  tbody.innerHTML = gastos.map(g => {
+    const [fy, fm, fd] = (g.fecha || "").split("-");
+    const fechaFmt = g.fecha ? `${parseInt(fd)}/${parseInt(fm)}/${fy}` : "—";
+    const catStyle = CAT_STYLE[g.cat] || CAT_STYLE["Otro"];
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${fechaFmt}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${g.hora || "—"}</td>
+      <td><span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:10px;${catStyle}">${g.cat || "—"}</span></td>
+      <td style="font-size:13px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.desc || "—"}</td>
+      <td class="num" style="font-weight:600">${fmt(g.monto || 0)}</td>
+      <td style="font-size:12px;color:var(--text2)">${g.admin || "—"}</td>
     </tr>`;
   }).join("");
 }
