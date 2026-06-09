@@ -3750,12 +3750,12 @@ let histPeriodoActivo = "7";
 
 function switchHistTab(tab) {
   histTabActiva = tab;
-  ["precios","ventas","gastos","anulaciones","descuentos"].forEach(t => {
+  ["precios","ventas","gastos","anulaciones","descuentos","compras"].forEach(t => {
     document.getElementById(`histTab${t.charAt(0).toUpperCase()+t.slice(1)}`)?.classList.toggle("active", t === tab);
     document.getElementById(`histPanel${t.charAt(0).toUpperCase()+t.slice(1)}`).style.display = t === tab ? "block" : "none";
   });
   const pw = document.getElementById("histVentasPeriodoWrap");
-  if (pw) pw.style.display = ["ventas","gastos","anulaciones","descuentos"].includes(tab) ? "flex" : "none";
+  if (pw) pw.style.display = ["ventas","gastos","anulaciones","descuentos","compras"].includes(tab) ? "flex" : "none";
   if (tab === "ventas")      renderHistorialVentas();
   if (tab === "gastos")      renderHistorialGastos();
   if (tab === "anulaciones") renderHistorialAnulaciones();
@@ -3766,6 +3766,7 @@ function switchHistTab(tab) {
     }
     renderHistorialDescuentos();
   }
+  if (tab === "compras") renderHistorialCompras();
 }
 
 document.getElementById("histTabPrecios")?.addEventListener("click",     () => switchHistTab("precios"));
@@ -3773,6 +3774,7 @@ document.getElementById("histTabVentas")?.addEventListener("click",      () => s
 document.getElementById("histTabGastos")?.addEventListener("click",      () => switchHistTab("gastos"));
 document.getElementById("histTabAnulaciones")?.addEventListener("click", () => switchHistTab("anulaciones"));
 document.getElementById("histTabDescuentos")?.addEventListener("click",  () => switchHistTab("descuentos"));
+document.getElementById("histTabCompras")?.addEventListener("click",     () => switchHistTab("compras"));
 
 document.querySelectorAll(".hist-periodo").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -3783,6 +3785,7 @@ document.querySelectorAll(".hist-periodo").forEach(btn => {
     if (histTabActiva === "gastos")      renderHistorialGastos();
     if (histTabActiva === "anulaciones") renderHistorialAnulaciones();
     if (histTabActiva === "descuentos")  renderHistorialDescuentos();
+    if (histTabActiva === "compras")     renderHistorialCompras();
   });
 });
 
@@ -4044,6 +4047,45 @@ function renderHistorialDescuentos() {
       <td class="num" style="color:var(--danger);font-weight:600">-${fmt(v.descuento)} <span style="font-size:10px">(${pct}%)</span></td>
       <td class="num" style="font-weight:600">${fmt(v.total || 0)}</td>
       <td style="font-size:12px;color:var(--text2)">${v.admin || "—"}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ── Render historial de compras ──
+function renderHistorialCompras() {
+  const tbody = document.getElementById("histComprasBody");
+  if (!tbody) return;
+
+  const hoy = new Date();
+  let desde;
+  if (histPeriodoActivo === "7")        { desde = new Date(hoy); desde.setDate(hoy.getDate() - 6); }
+  else if (histPeriodoActivo === "30")  { desde = new Date(hoy); desde.setDate(hoy.getDate() - 29); }
+  else if (histPeriodoActivo === "mes") { desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1); }
+  else                                  { desde = new Date(hoy.getFullYear(), 0, 1); }
+  const desdeKey = desde.toISOString().slice(0, 10);
+  const hoyKey   = hoy.toISOString().slice(0, 10);
+
+  const lista = comprasData
+    .filter(c => c.fecha >= desdeKey && c.fecha <= hoyKey)
+    .sort((a, b) => (b.ts || "").localeCompare(a.ts || ""));
+
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-row">No hay compras en el período seleccionado.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map(c => {
+    const [fy, fm, fd] = (c.fecha || "").split("-");
+    const fechaFmt  = c.fecha ? `${parseInt(fd)}/${parseInt(fm)}/${fy}` : "—";
+    const hora      = c.ts ? new Date(c.ts).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "—";
+    const productos = (c.items || []).map(i => `${i.desc}${i.qty > 1 ? ` ×${i.qty}` : ""}`).join(", ") || "—";
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${fechaFmt}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${hora}</td>
+      <td><span class="badge ${badgeClass(c.proveedor)}">${c.proveedor || "—"}</span></td>
+      <td style="font-size:12.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${productos}">${productos}</td>
+      <td class="num" style="font-weight:600">${fmt(c.total || 0)}</td>
+      <td style="font-size:12px;color:var(--text2)">${c.admin || "—"}</td>
     </tr>`;
   }).join("");
 }
