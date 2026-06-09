@@ -3949,8 +3949,8 @@ function renderHistorialAnulaciones() {
     }));
 
   const lista = [...deFirestore, ...deLogs].sort((a, b) => {
-    const fa = `${a.fecha} ${a.hora || ""}`;
-    const fb = `${b.fecha} ${b.hora || ""}`;
+    const fa = a.ts || `${a.fecha}T${a.hora || "00:00"}`;
+    const fb = b.ts || `${b.fecha}T${b.hora || "00:00"}`;
     return fb.localeCompare(fa);
   });
 
