@@ -4752,7 +4752,7 @@ function renderCompraItemsModal() {
   const wrap = document.getElementById("compraItems");
   if (!wrap) return;
   const provId   = document.getElementById("compraProvSelect")?.value;
-  const provProds = allProducts.filter(p => p.proveedor === proveedoresData[provId]?.nombre);
+  const provProds = allProducts.filter(p => p.proveedor === proveedores[provId]?.nombre);
 
   wrap.innerHTML = compraItems.map((item, i) => `
     <div style="display:grid;grid-template-columns:1fr 80px 100px 28px;gap:6px;align-items:center">
@@ -4834,7 +4834,7 @@ function abrirModalCompra() {
   // Popular select de proveedores
   const sel = document.getElementById("compraProvSelect");
   sel.innerHTML = '<option value="">Seleccioná un proveedor…</option>';
-  Object.entries(proveedoresData).forEach(([id, p]) => {
+  Object.entries(proveedores).forEach(([id, p]) => {
     const opt = document.createElement("option");
     opt.value = id; opt.textContent = p.nombre;
     sel.appendChild(opt);
@@ -4896,7 +4896,7 @@ document.getElementById("btnConfirmarCompra")?.addEventListener("click", async (
   const itemsValidos = compraItems.filter(i => i.prodId && (parseInt(i.qty)||0) > 0);
   if (!itemsValidos.length) { showToast("Agregá al menos un producto.", "error"); return; }
 
-  const prov   = proveedoresData[provId]?.nombre || "—";
+  const prov   = proveedores[provId]?.nombre || "—";
   const nota   = document.getElementById("compraNotaInput")?.value.trim();
   const total  = Math.round(calcTotalCompra());
   const fecha  = todayKey();
