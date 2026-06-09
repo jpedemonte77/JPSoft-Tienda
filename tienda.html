@@ -319,12 +319,20 @@
           <div class="stat-card-sub" id="gStatCant">0 gastos</div>
         </div>
         <div class="stat-card">
-          <div class="stat-card-label">Retiro</div>
-          <div class="stat-card-value" id="gStatRetiro">$0</div>
+          <div class="stat-card-label">Pago de impuesto</div>
+          <div class="stat-card-value" id="gStatPagoImp">$0</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-label">Pago de servicio</div>
           <div class="stat-card-value" id="gStatPagoServ">$0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Insumo</div>
+          <div class="stat-card-value" id="gStatInsumo">$0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Retiro</div>
+          <div class="stat-card-value" id="gStatRetiro">$0</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-label">Otro</div>
@@ -1321,8 +1329,10 @@
       <!-- Chips de categoría -->
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Categoría</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="gastoChips">
-        <button class="gasto-chip active" data-cat="Retiro">Retiro</button>
+        <button class="gasto-chip active" data-cat="Pago de impuesto">Pago de impuesto</button>
         <button class="gasto-chip" data-cat="Pago de servicio">Pago de servicio</button>
+        <button class="gasto-chip" data-cat="Insumo">Insumo</button>
+        <button class="gasto-chip" data-cat="Retiro">Retiro</button>
         <button class="gasto-chip" data-cat="Otro">Otro</button>
       </div>
       <!-- Descripción -->
@@ -1438,7 +1448,14 @@
       <!-- Items de la compra -->
       <div style="margin-top:14px">
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Productos comprados</div>
-        <div id="compraItems" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+        <div id="compraItems" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:1fr 80px 100px 28px;gap:6px;padding:0 0 2px">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Producto</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;text-align:center">Cantidad</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Costo unit.</div>
+          <div></div>
+        </div>
+      </div>
         <button type="button" class="btn-secondary" id="btnAgregarItemCompra" style="font-size:12px;width:100%">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Agregar producto
