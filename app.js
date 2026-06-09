@@ -3790,16 +3790,16 @@ function renderHistorialVentas() {
               proveedor: item.proveedor || "—",
               unidades: 0,
               total: 0,
-              precioVenta: item.precioVenta || item.precio || 0,
+              precioVenta: item.precioUnit || 0,
               ultimaVenta: ""
             };
           }
           porProducto[key].unidades += item.qty || 1;
-          porProducto[key].total    += (item.precioVenta || item.precio || 0) * (item.qty || 1);
+          porProducto[key].total    += (item.subtotal || (item.precioUnit || 0) * (item.qty || 1));
           const ts = `${fecha} ${v.hora || "00:00"}`;
           if (ts > porProducto[key].ultimaVenta) {
             porProducto[key].ultimaVenta = ts;
-            porProducto[key].precioVenta = item.precioVenta || item.precio || 0;
+            porProducto[key].precioVenta = item.precioUnit || 0;
           }
         });
       });
