@@ -700,6 +700,10 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
             Anulaciones
           </button>
+          <button id="histTabDescuentos" class="hist-tab" data-tab="descuentos">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            Descuentos
+          </button>
         </div>
 
         <!-- Filtro período (solo visible en pestaña Ventas) -->
@@ -814,6 +818,34 @@
             </thead>
             <tbody id="histAnulacionesBody">
               <tr><td colspan="6" class="empty-row">Seleccioná un período para ver las anulaciones.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Tabla Descuentos -->
+        <div id="histPanelDescuentos" style="display:none">
+          <table>
+            <colgroup>
+              <col style="width:110px">
+              <col style="width:80px">
+              <col>
+              <col style="width:110px">
+              <col style="width:110px">
+              <col style="width:90px">
+              <col style="width:100px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Productos</th>
+                <th class="num">Subtotal</th>
+                <th class="num">Descuento</th>
+                <th class="num">Total</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+            <tbody id="histDescuentosBody">
+              <tr><td colspan="7" class="empty-row">Seleccioná un período para ver los descuentos.</td></tr>
             </tbody>
           </table>
         </div>
