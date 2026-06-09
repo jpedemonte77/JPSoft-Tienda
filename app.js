@@ -421,6 +421,7 @@ function initFirebase() {
     renderProductosVenta();
     renderProductosTabla();
     updateStockBadge();
+    renderInicio();
   }));
 
   // Caja
@@ -430,6 +431,7 @@ function initFirebase() {
     renderCaja();
     renderGastos();
     updateCajaSidebar();
+    renderInicio();
   }));
 
   // Clientes
@@ -483,7 +485,7 @@ function rebuildGananciaMap() {
 // ============================================================
 //  NAVEGACIÓN
 // ============================================================
-const VIEWS = { venta: "Venta", caja: "Caja", gastos: "Gastos", compras: "Compras", clientes: "Clientes", productos: "Productos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial", actividad: "Actividad", soporte: "Soporte", backup: "Backup" };
+const VIEWS = { inicio: "Inicio", venta: "Venta", caja: "Caja", gastos: "Gastos", compras: "Compras", clientes: "Clientes", productos: "Productos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial", actividad: "Actividad", soporte: "Soporte", backup: "Backup" };
 
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -497,6 +499,7 @@ document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
     document.getElementById("sidebar").classList.remove("open");
     document.getElementById("sidebar-overlay").classList.remove("open");
     // Renders específicos por vista
+    if (view === "inicio")            renderInicio();
     if (view === "historial-precios") { renderHistorialPrecios(); renderHistorialVentas(); }
     if (view === "actividad")         renderActividad();
     if (view === "gastos")            renderGastos();
@@ -4049,6 +4052,131 @@ function renderHistorialDescuentos() {
       <td style="font-size:12px;color:var(--text2)">${v.admin || "—"}</td>
     </tr>`;
   }).join("");
+}
+
+// ============================================================
+//  DASHBOARD — INICIO
+// ============================================================
+function renderInicio() {
+  const hoy     = todayKey();
+  const diaData = cajaData[hoy] || {};
+
+  // ── Stats ventas del día ──
+  let totalVentas = 0, cantVentas = 0;
+  const ultimasVentas = [];
+  ["manana", "tarde"].forEach(turno => {
+    const ventas = diaData[turno]?.ventas || {};
+    Object.values(ventas).forEach(v => {
+      totalVentas += v.total || 0;
+      cantVentas++;
+      ultimasVentas.push({ ...v, turno });
+    });
+  });
+
+  const elV  = document.getElementById("inicioStatVentas");
+  const elVS = document.getElementById("inicioStatVentasSub");
+  if (elV)  elV.textContent  = fmt(Math.round(totalVentas));
+  if (elVS) elVS.textContent = `${cantVentas} ${cantVentas === 1 ? "transacción" : "transacciones"}`;
+
+  // ── Stats caja ──
+  const turnoAbierto = (diaData.manana?.apertura && !diaData.manana?.cierre) ? "manana"
+    : (diaData.tarde?.apertura && !diaData.tarde?.cierre) ? "tarde" : null;
+  const elC  = document.getElementById("inicioStatCaja");
+  const elCS = document.getElementById("inicioStatCajaSub");
+  if (elC)  elC.textContent  = fmt(Math.round(totalVentas));
+  if (elCS) elCS.textContent = turnoAbierto
+    ? `Turno ${turnoAbierto === "manana" ? "mañana" : "tarde"} · Abierto`
+    : "Sin turno abierto";
+
+  // ── Stats gastos del día ──
+  const gastos    = Object.values(diaData.gastos || {});
+  const totalGastos = gastos.reduce((s, g) => s + (g.monto || 0), 0);
+  const elG  = document.getElementById("inicioStatGastos");
+  const elGS = document.getElementById("inicioStatGastosSub");
+  if (elG)  elG.textContent  = fmt(Math.round(totalGastos));
+  if (elGS) elGS.textContent = `${gastos.length} ${gastos.length === 1 ? "registro" : "registros"}`;
+
+  // ── Stats fiado ──
+  const clientesConDeuda = Object.values(clientesData).filter(c => (c.saldo || 0) < 0);
+  const totalFiado = clientesConDeuda.reduce((s, c) => s + Math.abs(c.saldo || 0), 0);
+  const elF  = document.getElementById("inicioStatFiado");
+  const elFS = document.getElementById("inicioStatFiadoSub");
+  if (elF)  elF.textContent  = fmt(Math.round(totalFiado));
+  if (elFS) elFS.textContent = `${clientesConDeuda.length} ${clientesConDeuda.length === 1 ? "cliente" : "clientes"}`;
+
+  // ── Últimas ventas ──
+  const wrapVentas = document.getElementById("inicioUltimasVentas");
+  if (wrapVentas) {
+    const recientes = ultimasVentas
+      .sort((a, b) => (b.hora || "").localeCompare(a.hora || ""))
+      .slice(0, 5);
+    if (!recientes.length) {
+      wrapVentas.innerHTML = '<div class="empty-row">Sin ventas registradas hoy.</div>';
+    } else {
+      wrapVentas.innerHTML = recientes.map((v, i) => {
+        const prods  = (v.items || []).map(i => `${i.desc}${i.qty > 1 ? ` ×${i.qty}` : ""}`).join(", ") || "—";
+        const metodo = { efectivo: "Efectivo", mp: "Mercado Pago", debito: "Débito", credito: "Crédito" }[v.metodo] || v.metodo || "—";
+        const isLast = i === recientes.length - 1;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:${isLast ? "none" : "1px solid var(--border)"}">
+          <div style="min-width:0;flex:1;padding-right:10px">
+            <div style="font-size:13px;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${prods}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">${v.hora || "—"} · ${metodo}</div>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--text1);flex-shrink:0">${fmt(v.total || 0)}</div>
+        </div>`;
+      }).join("");
+    }
+  }
+
+  // ── Stock crítico ──
+  const wrapStock = document.getElementById("inicioStockCritico");
+  const badgeStock = document.getElementById("inicioStockBadge");
+  if (wrapStock) {
+    const criticos = allProducts
+      .filter(p => typeof p.stock === "number" && p.stock <= (p.stockMin || 5))
+      .sort((a, b) => (a.stock || 0) - (b.stock || 0))
+      .slice(0, 5);
+
+    if (badgeStock) {
+      if (criticos.length) { badgeStock.textContent = `${criticos.length} productos`; badgeStock.style.display = "inline"; }
+      else badgeStock.style.display = "none";
+    }
+
+    if (!criticos.length) {
+      wrapStock.innerHTML = '<div class="empty-row">Sin productos en stock crítico.</div>';
+    } else {
+      wrapStock.innerHTML = criticos.map((p, i) => {
+        const isLast  = i === criticos.length - 1;
+        const color   = p.stock <= 0 ? "#A32D2D" : "#854F0B";
+        const bg      = p.stock <= 0 ? "#FCEBEB" : "#FAEEDA";
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:${isLast ? "none" : "1px solid var(--border)"}">
+          <div style="font-size:13px;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;padding-right:10px">${p.desc}</div>
+          <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:10px;background:${bg};color:${color};flex-shrink:0">${p.stock} unid.</span>
+        </div>`;
+      }).join("");
+    }
+  }
+
+  // ── Clientes con deuda ──
+  const wrapClientes = document.getElementById("inicioClientesDeuda");
+  if (wrapClientes) {
+    const conDeuda = Object.entries(clientesData)
+      .filter(([, c]) => (c.saldo || 0) < 0)
+      .sort((a, b) => (a[1].saldo || 0) - (b[1].saldo || 0))
+      .slice(0, 4);
+
+    if (!conDeuda.length) {
+      wrapClientes.innerHTML = '<div class="empty-row">Sin deudas pendientes.</div>';
+    } else {
+      wrapClientes.innerHTML = conDeuda.map(([, c], i) => {
+        const isLast = i === conDeuda.length - 1;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:${isLast ? "none" : "1px solid var(--border)"}">
+          <div style="font-size:13px;color:var(--text1)">${c.nombre}</div>
+          <div style="font-size:13px;font-weight:600;color:#A32D2D">${fmt(Math.abs(c.saldo || 0))}</div>
+        </div>`;
+      }).join("");
+    }
+  }
 }
 
 // ── Render historial de compras ──
