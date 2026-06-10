@@ -253,6 +253,7 @@ function getNombreUsuario() {
 }
 
 let rolActual = "administrador"; // default hasta que se cargue de Firestore
+let nroVentaActual = 0; // se carga desde Firestore al iniciar
 
 const VISTAS_EMPLEADO = ["inicio","venta","caja","notas","clientes","gastos","compras","productos","proveedores","soporte"];
 const VISTAS_ADMIN    = ["inicio","venta","caja","notas","clientes","gastos","compras","productos","proveedores","reportes","historial-precios","actividad","usuarios","soporte","backup"];
@@ -364,6 +365,12 @@ async function mostrarApp(email, uid = null) {
   } else {
     aplicarRol("administrador");
   }
+
+  // Actualizar vendedor en carrito
+  setTimeout(() => {
+    const v = document.getElementById("ventaVendedor");
+    if (v) v.textContent = document.getElementById("user-nombre")?.textContent || "—";
+  }, 600);
 }
 
 onAuthStateChanged(auth, user => {
@@ -1577,11 +1584,13 @@ async function confirmarVentaFinal() {
   const ventasActuales = { ...(turnoData.ventas || {}) };
   const _notaVenta = document.getElementById("notaVentaInput")?.value?.trim() || "";
   ventasActuales[ventaId] = {
+    nro: nroVentaActual,
     hora, metodo: metodoSeleccionado,
     total:     Math.round(total),
     subtotal:  Math.round(vSubtotal || total),
     descuento: Math.round(vDesc || 0),
     items, admin: getNombreUsuario(),
+    vendedor: getNombreUsuario(),
     ...(_notaVenta && { nota: _notaVenta }),
   };
 
@@ -1613,6 +1622,7 @@ async function confirmarVentaFinal() {
 
   // Guardar datos del ticket para imprimir/guardar
   window._ultimaVenta = {
+    nro: nroVentaActual,
     items, total: Math.round(total), subtotal: Math.round(vSubtotal || total),
     descuento: Math.round(vDesc || 0), metodo: metodoSeleccionado,
     hora, fecha: todayKey(), admin: getNombreUsuario()
@@ -1621,7 +1631,7 @@ async function confirmarVentaFinal() {
   // Mostrar modal post-venta
   const metodoLabel = { efectivo: "Efectivo", mp: "Mercado Pago", debito: "Débito", credito: "Crédito" };
   document.getElementById("ventaConfirmadaResumen").textContent =
-    `${fmt(Math.round(total))} · ${metodoLabel[metodoSeleccionado] || metodoSeleccionado}`;
+    `${fmtNroVenta(nroVentaActual)} · ${fmt(Math.round(total))} · ${metodoLabel[metodoSeleccionado] || metodoSeleccionado}`;
   document.getElementById("modalVentaConfirmada").classList.remove("hidden");
 
   // 3. Escribir en Firestore en segundo plano (funciona offline)
@@ -4267,10 +4277,11 @@ function renderInicio() {
         const prods  = (v.items || []).map(i => `${i.desc}${i.qty > 1 ? ` ×${i.qty}` : ""}`).join(", ") || "—";
         const metodo = { efectivo: "Efectivo", mp: "Mercado Pago", debito: "Débito", credito: "Crédito" }[v.metodo] || v.metodo || "—";
         const isLast = i === recientes.length - 1;
+        const nroTxt = v.nro ? `${fmtNroVenta(v.nro)} · ` : "";
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:${isLast ? "none" : "1px solid var(--border)"}">
           <div style="min-width:0;flex:1;padding-right:10px">
             <div style="font-size:13px;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${prods}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:1px">${v.hora || "—"} · ${metodo}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">${nroTxt}${v.hora || "—"} · ${metodo}</div>
           </div>
           <div style="font-size:13px;font-weight:600;color:var(--text1);flex-shrink:0">${fmt(v.total || 0)}</div>
         </div>`;
@@ -5567,6 +5578,7 @@ document.getElementById("btnImprimirTicket")?.addEventListener("click", () => {
   let txt = "";
   txt += centro("JPSoft | Tienda") + "\n";
   txt += centro(fechaFmt) + "\n";
+  if (v.nro) txt += centro(fmtNroVenta(v.nro)) + "\n";
   txt += lineaPuntos() + "\n";
 
   v.items.forEach(item => {
@@ -5625,7 +5637,8 @@ document.getElementById("btnGuardarTicketPDF")?.addEventListener("click", async 
 
   const content = `<div style="font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#111;padding:24px;max-width:320px;margin:0 auto">
     <div style="font-size:18px;font-weight:600;margin-bottom:2px">JPSoft | Tienda</div>
-    <div style="font-size:11px;color:#888;margin-bottom:14px">${fechaFmt} · ${v.hora || ""}</div>
+    <div style="font-size:11px;color:#888;margin-bottom:2px">${fechaFmt} · ${v.hora || ""}</div>
+    ${v.nro ? `<div style="font-size:12px;font-weight:600;color:#111;margin-bottom:10px;font-family:monospace">${fmtNroVenta(v.nro)}</div>` : '<div style="margin-bottom:10px"></div>'}
     <div style="border-top:1px solid #eee;margin-bottom:10px"></div>
     <table style="width:100%;border-collapse:collapse">
       <thead><tr style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">
@@ -6410,3 +6423,44 @@ function initNotificaciones() {
   // Recalcular cada 5 minutos
   setInterval(renderNotifPanel, 5 * 60 * 1000);
 }
+
+// ============================================================
+//  Nº DE VENTA CORRELATIVO
+// ============================================================
+async function getNroVenta() {
+  try {
+    const ref  = doc(db, "config", "contadores");
+    const snap = await getDoc(ref);
+    const actual = snap.exists() ? (snap.data().nroVenta || 0) : 0;
+    const nuevo  = actual + 1;
+    await setDoc(ref, { nroVenta: nuevo }, { merge: true });
+    nroVentaActual = nuevo;
+    return nuevo;
+  } catch(e) {
+    nroVentaActual = Math.floor(Math.random() * 9000) + 1000; // fallback
+    return nroVentaActual;
+  }
+}
+
+function fmtNroVenta(n) {
+  return `#${String(n).padStart(5, "0")}`;
+}
+
+// ── Mostrar Nº de venta al abrir el modal de cobro ──
+const _origRenderModalVenta = window.renderModalVenta;
+document.getElementById("btnConfirmarVenta")?.addEventListener("click", async () => {
+  const nro = await getNroVenta();
+  const el  = document.getElementById("modalVentaNro");
+  if (el) el.textContent = fmtNroVenta(nro);
+}, true); // capture = true para que corra antes del listener principal
+
+// ── Cotización del dólar ──
+const cotizInput = document.getElementById("cotizacionDolar");
+
+// Cargar del localStorage
+const _cotizGuardada = localStorage.getItem("jpsoft_cotiz_dolar");
+if (cotizInput && _cotizGuardada) cotizInput.value = _cotizGuardada;
+
+cotizInput?.addEventListener("change", () => {
+  localStorage.setItem("jpsoft_cotiz_dolar", cotizInput.value);
+});
