@@ -1291,10 +1291,7 @@
     </div>
     <div class="modal-footer" style="justify-content:space-between">
       <button class="btn-danger" id="btnCancelarVenta" style="font-size:14px;padding:10px 16px">Cancelar</button>
-      <div style="display:flex;gap:8px">
-        <button class="btn-secondary" id="btnGuardarTicket" style="font-size:14px;padding:10px 16px">Guardar y Confirmar</button>
-        <button class="btn-primary" id="btnConfirmarVentaFinal" style="font-size:14px;padding:10px 20px">Confirmar</button>
-      </div>
+      <button class="btn-primary" id="btnConfirmarVentaFinal" style="font-size:14px;padding:10px 20px">Confirmar</button>
     </div>
   </div>
 </div>
@@ -1618,6 +1615,34 @@
     <div class="modal-footer">
       <button class="btn-secondary" id="btnCancelarCompra">Cancelar</button>
       <button class="btn-primary" id="btnConfirmarCompra">Registrar compra</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: VENTA CONFIRMADA
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalVentaConfirmada">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-body" style="text-align:center;padding:24px 20px 16px">
+      <div style="width:48px;height:48px;border-radius:50%;background:#EAF3DE;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B6D11" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div style="font-size:17px;font-weight:600;color:var(--text1);margin-bottom:4px">Venta confirmada</div>
+      <div style="font-size:14px;color:var(--text2)" id="ventaConfirmadaResumen">$0 · Efectivo</div>
+    </div>
+    <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
+      <button type="button" class="btn-secondary" id="btnImprimirTicket" style="width:100%;padding:10px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:7px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir ticket
+      </button>
+      <button type="button" class="btn-secondary" id="btnGuardarTicketPDF" style="width:100%;padding:10px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:7px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Guardar ticket
+      </button>
+      <button type="button" id="btnCerrarVentaConfirmada" style="width:100%;padding:10px;font-size:13px;color:var(--text2);background:none;border:none;cursor:pointer;font-family:inherit">
+        Cerrar
+      </button>
     </div>
   </div>
 </div>
