@@ -2551,6 +2551,14 @@ document.getElementById("pf-iva-select")?.addEventListener("change", e => {
   if (e.target.value !== "custom") custom.value = "";
 });
 
+document.getElementById("historialPreciosToggle")?.addEventListener("click", () => {
+  const list    = document.getElementById("historialPreciosList");
+  const chevron = document.getElementById("historialPreciosChevron");
+  const open    = list.style.display === "block";
+  list.style.display        = open ? "none" : "block";
+  chevron.style.transform   = open ? "" : "rotate(180deg)";
+});
+
 window._editarProducto = function(id) {
   abrirModalProducto(id);
 };
@@ -2601,7 +2609,11 @@ function abrirModalProducto(id) {
         <span style="color:var(--text3);font-family:'DM Mono',monospace">${h.fecha} ${h.hora}</span>
         <span style="color:var(--text2)">${h.admin || "—"}</span>
         <span><span style="color:var(--text3)">${fmt(h.precioAnterior)}</span> → <span style="font-weight:500">${fmt(h.precioNuevo)}</span></span>
-      </div>`).join("").replace(/border-bottom[^;]+;([^"]*)"[^>]*>[^<]*$/, '$1"');
+      </div>`).join("");
+    // Cerrado por defecto al abrir
+    histList.style.display = "none";
+    const chevron = document.getElementById("historialPreciosChevron");
+    if (chevron) chevron.style.transform = "";
     histWrap.classList.remove("hidden");
   } else {
     histWrap.classList.add("hidden");
