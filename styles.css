@@ -1322,18 +1322,9 @@ tr.fila-activa td { background: var(--info-bg); }
 /* ===========================
    CLIENTES
 =========================== */
-.cliente-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 9px 13px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background var(--transition);
-}
-.cliente-row:last-child { border-bottom: none; }
-.cliente-row:hover { background: var(--bg3); }
-.cliente-row.active { background: var(--bg3); }
+.cliente-row td { cursor: pointer; }
+.cliente-row:hover td { background: var(--bg3); }
+.cliente-row.active td { background: var(--bg3); }
 .cliente-avatar {
   width: 28px; height: 28px;
   border-radius: 50%;
