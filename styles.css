@@ -239,11 +239,11 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0.42rem 0.75rem;
+  padding: 0.46rem 0.75rem;
   border-radius: var(--radius-sm);
   color: var(--text2);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 500;
   transition: background var(--transition), color var(--transition);
   cursor: pointer;
@@ -266,7 +266,7 @@ body {
 }
 
 .sidebar-bottom {
-  padding: 0.4rem 0.75rem;
+  padding: 0.6rem 0.75rem;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
