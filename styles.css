@@ -1325,6 +1325,22 @@ tr.fila-activa td { background: var(--info-bg); }
 .cliente-row td { cursor: pointer; }
 .cliente-row:hover td { background: var(--bg3); }
 .cliente-row.active td { background: var(--bg3); }
+
+.cliente-tooltip {
+  display: none;
+  position: absolute;
+  left: 0; top: calc(100% + 4px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  width: 300px;
+  z-index: 100;
+  font-weight: 400;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+.cliente-nombre-cell { position: relative; }
+.cliente-nombre-cell:hover .cliente-tooltip { display: block; }
 .cliente-avatar {
   width: 28px; height: 28px;
   border-radius: 50%;
