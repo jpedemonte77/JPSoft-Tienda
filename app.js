@@ -1437,6 +1437,22 @@ document.getElementById("btnConfirmarVenta").addEventListener("click", () => {
   if (notaBody)    { notaBody.style.display = "none"; }
   if (notaChevron) { notaChevron.style.transform = ""; }
   actualizarCobroClienteWrap(null);
+
+  // Popular selector de cliente
+  const sel = document.getElementById("ventaClienteSelect");
+  if (sel) {
+    sel.innerHTML = '<option value="">Sin cliente…</option>';
+    Object.entries(clientesData).sort((a,b) => (a[1].nombre||"").localeCompare(b[1].nombre||"")).forEach(([id, c]) => {
+      const opt = document.createElement("option");
+      opt.value = id; opt.textContent = c.nombre;
+      sel.appendChild(opt);
+    });
+    sel.value = "";
+  }
+  // Ocultar cliente seleccionado
+  document.getElementById("ventaClienteSelector").style.display       = "flex";
+  document.getElementById("ventaClienteSeleccionado").style.display   = "none";
+
   const modalVenta = document.getElementById("modalVenta");
   modalVenta.classList.remove("hidden");
   // Forzar foco al modal para que las teclas funcionen sin click
@@ -1538,6 +1554,32 @@ function renderModalVenta() {
 }
 
 document.getElementById("closeModalVenta").addEventListener("click", () => document.getElementById("modalVenta").classList.add("hidden"));
+
+// ── Cliente en Venta ──
+document.getElementById("ventaClienteSelect")?.addEventListener("change", e => {
+  const id = e.target.value;
+  if (!id) {
+    document.getElementById("ventaClienteSelector").style.display     = "flex";
+    document.getElementById("ventaClienteSeleccionado").style.display = "none";
+    return;
+  }
+  const c = clientesData[id];
+  if (!c) return;
+  const inic = getIniciales(c.nombre || "?");
+  document.getElementById("ventaClienteAvatar").textContent  = inic;
+  document.getElementById("ventaClienteNombre").textContent  = c.nombre;
+  const saldo = c.saldo || 0;
+  document.getElementById("ventaClienteDeuda").textContent   = saldo < 0 ? `Deuda: ${fmt(Math.abs(saldo))}` : "Sin deuda";
+  document.getElementById("ventaClienteSelector").style.display     = "none";
+  document.getElementById("ventaClienteSeleccionado").style.display = "flex";
+});
+
+document.getElementById("btnQuitarClienteVenta")?.addEventListener("click", () => {
+  const sel = document.getElementById("ventaClienteSelect");
+  if (sel) sel.value = "";
+  document.getElementById("ventaClienteSelector").style.display     = "flex";
+  document.getElementById("ventaClienteSeleccionado").style.display = "none";
+});
 document.getElementById("btnCancelarVenta").addEventListener("click", () => document.getElementById("modalVenta").classList.add("hidden"));
 
 // Guardar ticket como .txt
@@ -1591,6 +1633,8 @@ async function confirmarVentaFinal() {
     descuento: Math.round(vDesc || 0),
     items, admin: getNombreUsuario(),
     vendedor: getNombreUsuario(),
+    clienteId:     document.getElementById("ventaClienteSelect")?.value || null,
+    clienteNombre: document.getElementById("ventaClienteNombre")?.textContent || null,
     ...(_notaVenta && { nota: _notaVenta }),
   };
 
@@ -4408,6 +4452,20 @@ function getAvatarColor(nombre) {
 }
 
 // ── Render lista ──
+let clienteExpandidoId = null;
+let clienteFilaActiva  = -1;
+
+function buildWA(tel) {
+  if (!tel) return null;
+  let t = tel.replace(/\D/g, "");
+  if (t.startsWith("549") || t.startsWith("541")) {}
+  else if (t.startsWith("54")) t = "549" + t.slice(2);
+  else if (t.startsWith("0"))  t = "549" + t.slice(1);
+  else if (t.startsWith("9"))  t = "54"  + t;
+  else                          t = "549" + t;
+  return t;
+}
+
 function renderClientesLista() {
   const tbody = document.getElementById("clientesLista");
   const empty = document.getElementById("clientesListaEmpty");
@@ -4417,139 +4475,173 @@ function renderClientesLista() {
   // Stats
   let totalDeuda = 0, deudores = 0;
   clientes.forEach(([, c]) => { if ((c.saldo || 0) < 0) { totalDeuda += Math.abs(c.saldo); deudores++; } });
-  document.getElementById("cStatTotal").textContent   = fmt(totalDeuda);
+  document.getElementById("cStatTotal").textContent    = fmt(totalDeuda);
   document.getElementById("cStatDeudores").textContent = deudores;
-
-  if (!clientes.length) {
-    tbody.innerHTML = "";
-    if (empty) empty.style.display = "block";
-    return;
-  }
-  if (empty) empty.style.display = "none";
-
-  tbody.innerHTML = clientes.map(([id, c]) => {
-    const saldo = c.saldo || 0;
-    const saldoColor = saldo < 0 ? "#A32D2D" : saldo > 0 ? "#3B6D11" : "var(--text3)";
-    const saldoTxt   = saldo < 0 ? fmt(saldo) : saldo > 0 ? `+${fmt(saldo)}` : "$0";
-    const ivaShort   = (c.iva || "—").replace("IVA ", "").replace("Responsable ", "Resp. ");
-    const isActivo   = clienteActivoId === id;
-    return `<tr class="cliente-row${isActivo ? " active" : ""}" data-id="${id}" style="cursor:pointer${isActivo ? ";background:var(--bg3)" : ""}">
-      <td style="font-weight:500;color:var(--text1)">${c.nombre || "—"}</td>
-      <td style="font-size:12px;color:var(--text2)">${c.razonSocial || "—"}</td>
-      <td style="font-size:12px;color:var(--text2)">${c.telefono || "—"}</td>
-      <td style="font-size:12px;color:var(--text2)">${c.localidad || "—"}</td>
-      <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text2)">${ivaShort}</span></td>
-      <td class="num" style="font-weight:600;color:${saldoColor}">${saldoTxt}</td>
-      <td style="text-align:center">
-        <div style="display:flex;gap:4px;justify-content:center">
-          <button type="button" class="cliente-edit-btn" data-id="${id}" style="background:none;border:none;cursor:pointer;padding:3px;color:var(--text3)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-        </div>
-      </td>
-    </tr>`;
-  }).join("");
-
-  // Cobrado este mes
-  const hoy   = new Date();
+  const hoy    = new Date();
   const mesIni = new Date(hoy.getFullYear(), hoy.getMonth(), 1).getTime();
-  let cobrado = 0;
+  let cobrado  = 0;
   clientes.forEach(([id]) => {
-    const movs = clientesData[id]?.movimientos || {};
-    Object.values(movs).forEach(m => {
+    Object.values(clientesData[id]?.movimientos || {}).forEach(m => {
       if (m.tipo === "pago" && m.fecha >= mesIni) cobrado += m.monto || 0;
     });
   });
   document.getElementById("cStatCobrado").textContent = fmt(cobrado);
+
+  if (!clientes.length) {
+    tbody.innerHTML = ""; if (empty) empty.style.display = "block"; return;
+  }
+  if (empty) empty.style.display = "none";
+
+  tbody.innerHTML = clientes.map(([id, c], idx) => {
+    const saldo      = c.saldo || 0;
+    const saldoColor = saldo < 0 ? "#A32D2D" : saldo > 0 ? "#3B6D11" : "var(--text3)";
+    const saldoTxt   = saldo < 0 ? fmt(saldo) : saldo > 0 ? `+${fmt(saldo)}` : "$0";
+    const ivaShort   = (c.iva || "—").replace("IVA ", "").replace("Responsable ", "Resp. ");
+    const expanded   = clienteExpandidoId === id;
+    const highlighted = clienteFilaActiva === idx;
+
+    // Movimientos
+    const movs = Object.entries(c.movimientos || {}).sort((a,b) => (b[1].fecha||0)-(a[1].fecha||0));
+    const TIPO_STYLE = {
+      fiado: { bg:"#FCEBEB", color:"#A32D2D", label:"Fiado" },
+      pago:  { bg:"#EAF3DE", color:"#3B6D11", label:"Pago" },
+    };
+
+    // Ventas vinculadas al cliente
+    const ventasCliente = [];
+    Object.entries(cajaData).forEach(([fecha, dia]) => {
+      ["manana","tarde"].forEach(turno => {
+        Object.values(dia[turno]?.ventas || {}).forEach(v => {
+          if (v.clienteId === id || v.clienteNombre === c.nombre) {
+            ventasCliente.push({ ...v, fecha });
+          }
+        });
+      });
+    });
+    ventasCliente.sort((a,b) => (b.hora||"").localeCompare(a.hora||""));
+
+    const waNum = buildWA(c.telefono);
+    const expandRow = expanded ? `
+    <tr class="cliente-expand-row" data-expand-id="${id}">
+      <td colspan="6" style="padding:0;border-bottom:1px solid var(--border)">
+        <div style="padding:10px 14px;background:var(--surface2)">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+            ${waNum ? `<a href="https://wa.me/${waNum}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--radius-sm);background:#E1F5EE;border:1px solid #9FE1CB;font-size:11.5px;color:#0F6E56;text-decoration:none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="#1D9E75"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.05 2C6.495 2 2 6.495 2 12.05c0 1.868.497 3.623 1.362 5.14L2 22l4.948-1.337A10.01 10.01 0 0 0 12.05 22C17.605 22 22 17.505 22 11.95 22 6.495 17.605 2 12.05 2zm0 18.385a8.33 8.33 0 0 1-4.239-1.158l-.304-.18-3.143.849.845-3.073-.198-.315A8.324 8.324 0 0 1 3.715 12.05c0-4.598 3.737-8.335 8.335-8.335 4.598 0 8.335 3.737 8.335 8.335 0 4.598-3.737 8.335-8.335 8.335z"/></svg>
+              Contactar
+            </a>` : ""}
+            <button type="button" class="btn-primary cliente-cobrar-btn" data-id="${id}" style="font-size:11.5px;padding:5px 10px">Cobrar</button>
+            <button type="button" class="btn-secondary cliente-editar-btn" data-id="${id}" style="font-size:11.5px;padding:5px 10px">Editar</button>
+            <button type="button" class="btn-danger cliente-eliminar-btn" data-id="${id}" style="font-size:11.5px;padding:5px 8px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Movimientos</div>
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+                ${!movs.length ? `<div class="empty-row" style="font-size:12px">Sin movimientos.</div>` :
+                  movs.slice(0,5).map(([,m]) => {
+                    const st = TIPO_STYLE[m.tipo] || {bg:"var(--surface2)",color:"var(--text2)",label:m.tipo};
+                    const col = m.tipo==="pago" ? "#3B6D11" : "#A32D2D";
+                    const signo = m.tipo==="pago" ? "-" : "+";
+                    const fecha = m.fecha ? new Date(m.fecha).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"}) : "—";
+                    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--border)">
+                      <div style="font-size:11.5px;color:var(--text2)">${fecha} · ${m.concepto||"—"}</div>
+                      <div style="display:flex;align-items:center;gap:6px">
+                        <span style="font-size:11px;padding:1px 6px;border-radius:8px;background:${st.bg};color:${st.color}">${st.label}</span>
+                        <span style="font-size:12px;font-weight:600;color:${col}">${signo}${fmt(m.monto||0)}</span>
+                      </div>
+                    </div>`;
+                  }).join("")}
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Compras registradas</div>
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+                ${!ventasCliente.length ? `<div class="empty-row" style="font-size:12px">Sin compras vinculadas.</div>` :
+                  ventasCliente.slice(0,5).map(v => {
+                    const [fy,fm,fd] = (v.fecha||"").split("-");
+                    const fechaFmt = v.fecha ? `${parseInt(fd)}/${parseInt(fm)}` : "—";
+                    const prods = (v.items||[]).map(i=>i.desc).join(", ").substring(0,40)||"—";
+                    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--border)">
+                      <div>
+                        <div style="font-size:11.5px;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${prods}</div>
+                        <div style="font-size:10.5px;color:var(--text3)">${fechaFmt} · ${v.hora||""}</div>
+                      </div>
+                      <span style="font-size:12px;font-weight:600;color:var(--text1)">${fmt(v.total||0)}</span>
+                    </div>`;
+                  }).join("")}
+              </div>
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>` : "";
+
+    return `<tr class="cliente-row" data-id="${id}" data-idx="${idx}" style="cursor:pointer${highlighted ? ";background:var(--bg3)" : ""}">
+      <td style="font-weight:500;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.nombre||"—"}</td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${c.telefono||"—"}</td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${c.localidad||"—"}</td>
+      <td style="white-space:nowrap"><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text2)">${ivaShort}</span></td>
+      <td class="num" style="font-weight:600;color:${saldoColor};white-space:nowrap">${saldoTxt}</td>
+      <td style="text-align:center;padding:0 8px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(${expanded?"90":"0"}deg);transition:transform .2s;color:var(--text3)"><polyline points="9 18 15 12 9 6"/></svg>
+      </td>
+    </tr>${expandRow}`;
+  }).join("");
 }
 
-// ── Render detalle ──
-function renderClienteDetalle(id) {
-  clienteActivoId = id;
-  const c = clientesData[id];
-  if (!c) return;
-
-  const av   = getAvatarColor(c.nombre || "?");
-  const inic = getIniciales(c.nombre || "?");
-  const saldo = c.saldo || 0;
-
-  document.getElementById("clienteDetalleAvatar").textContent = inic;
-  document.getElementById("clienteDetalleAvatar").style.background = av.bg;
-  document.getElementById("clienteDetalleAvatar").style.color      = av.color;
-  document.getElementById("clienteDetalleNombre").textContent = c.nombre;
-  document.getElementById("clienteDetalleSaldo").textContent  =
-    saldo < 0 ? `Deuda: ${fmt(Math.abs(saldo))}` :
-    saldo > 0 ? `A favor: ${fmt(saldo)}` : "Sin deuda";
-  document.getElementById("clienteDetalleSaldo").style.color =
-    saldo < 0 ? "var(--danger)" : saldo > 0 ? "var(--success)" : "var(--text3)";
-
-  // WhatsApp
-  const waBtn = document.getElementById("clienteDetalleWA");
-  if (c.telefono) {
-    // Normalizar número para WhatsApp Argentina
-    // Eliminar todo excepto dígitos
-    let tel = c.telefono.replace(/\D/g, "");
-    // Si empieza con 54 (código país ya incluido), usar tal cual
-    // Si empieza con 9 (ej: 9341...), agregar 54 adelante
-    // Si empieza con 0 (ej: 0341...), sacar el 0 y agregar 549
-    // Si empieza con 3 o 1 (ej: 341...), agregar 549 adelante
-    if (tel.startsWith("549") || tel.startsWith("541")) {
-      // ya tiene código país + 9
-    } else if (tel.startsWith("54")) {
-      tel = "549" + tel.slice(2);
-    } else if (tel.startsWith("0")) {
-      tel = "549" + tel.slice(1);
-    } else if (tel.startsWith("9")) {
-      tel = "54" + tel;
-    } else {
-      tel = "549" + tel;
-    }
-    waBtn.href = `https://wa.me/${tel}`;
-    waBtn.style.display = "flex";
-  } else {
-    waBtn.style.display = "none";
-  }
-
-  // Movimientos
-  const movs = Object.entries(c.movimientos || {}).sort((a, b) => (b[1].fecha || 0) - (a[1].fecha || 0));
-  const tbody = document.getElementById("clienteMovsBody");
-  const empty = document.getElementById("clienteMovsEmpty");
-
-  if (!movs.length) {
-    tbody.innerHTML = "";
-    empty.style.display = "block";
-  } else {
-    empty.style.display = "none";
-    const TIPO_STYLE = {
-      fiado: { bg: "#FCEBEB", color: "#A32D2D", label: "Fiado" },
-      pago:  { bg: "#EAF3DE", color: "#3B6D11", label: "Pago" },
-    };
-    tbody.innerHTML = movs.map(([, m]) => {
-      const st    = TIPO_STYLE[m.tipo] || { bg: "var(--surface2)", color: "var(--text2)", label: m.tipo };
-      const signo = m.tipo === "pago" ? "-" : "+";
-      const col   = m.tipo === "pago" ? "#3B6D11" : "#A32D2D";
-      const fecha = m.fecha ? new Date(m.fecha).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
-      return `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">${fecha}</td>
-        <td style="font-size:12.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.concepto || "—"}</td>
-        <td class="num" style="font-weight:600;color:${col}">${signo}${fmt(m.monto || 0)}</td>
-        <td style="text-align:center"><span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:10px;background:${st.bg};color:${st.color}">${st.label}</span></td>
-      </tr>`;
-    }).join("");
-  }
-
-  document.getElementById("clienteDetalle").style.display      = "block";
-  document.getElementById("clienteDetalleVacio").style.display = "none";
+function toggleClienteExpand(id) {
+  clienteExpandidoId = clienteExpandidoId === id ? null : id;
+  clienteActivoId = clienteExpandidoId;
   renderClientesLista();
 }
 
-// Delegación en lista
+// ── Delegación en tabla ──
 document.getElementById("clientesLista")?.addEventListener("click", e => {
-  const editBtn = e.target.closest(".cliente-edit-btn");
-  if (editBtn) { abrirModalCliente(editBtn.dataset.id); return; }
+  const cobrarBtn  = e.target.closest(".cliente-cobrar-btn");
+  const editarBtn  = e.target.closest(".cliente-editar-btn");
+  const eliminarBtn = e.target.closest(".cliente-eliminar-btn");
+  if (cobrarBtn)   { clienteActivoId = cobrarBtn.dataset.id; abrirModalCobrar(); return; }
+  if (editarBtn)   { abrirModalCliente(editarBtn.dataset.id); return; }
+  if (eliminarBtn) { eliminarCliente(eliminarBtn.dataset.id); return; }
   const row = e.target.closest(".cliente-row");
-  if (row) renderClienteDetalle(row.dataset.id);
+  if (row) toggleClienteExpand(row.dataset.id);
 });
+
+// ── Navegación con teclado ──
+document.getElementById("clientesLista")?.addEventListener("keydown", e => {
+  const clientes = Object.entries(clientesData).sort((a,b) => (a[1].nombre||"").localeCompare(b[1].nombre||""));
+  if (!clientes.length) return;
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    clienteFilaActiva = Math.min(clienteFilaActiva + 1, clientes.length - 1);
+    renderClientesLista();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    clienteFilaActiva = Math.max(clienteFilaActiva - 1, 0);
+    renderClientesLista();
+  } else if (e.key === "Enter" && clienteFilaActiva >= 0) {
+    e.preventDefault();
+    toggleClienteExpand(clientes[clienteFilaActiva][0]);
+  } else if (e.key === "Escape") {
+    clienteExpandidoId = null; clienteFilaActiva = -1; renderClientesLista();
+  }
+});
+
+async function eliminarCliente(id) {
+  const c = clientesData[id];
+  if (!confirm(`¿Eliminar a ${c?.nombre}?\n\nSe eliminarán todos sus movimientos. Esta acción no se puede deshacer.`)) return;
+  const mSnap = await getDocs(collection(db, "clientes", id, "movimientos"));
+  const batch = writeBatch(db);
+  mSnap.forEach(d => batch.delete(d.ref));
+  batch.delete(doc(db, "clientes", id));
+  await batch.commit();
+  if (clienteExpandidoId === id) { clienteExpandidoId = null; clienteFilaActiva = -1; }
+  registrarLog("cliente", `Cliente eliminado — ${c?.nombre}`);
+  showToast(`Cliente eliminado ✓`, "success");
+}
 
 // ── Firestore listener ──
 function initClientesListener() {
@@ -4567,7 +4659,7 @@ function initClientesListener() {
     );
     Promise.all(promises).then(() => {
       renderClientesLista();
-      if (clienteActivoId && clientesData[clienteActivoId]) renderClienteDetalle(clienteActivoId);
+      if (clienteActivoId && clientesData[clienteActivoId]) renderClientesLista();
     });
   });
 }
@@ -4594,7 +4686,6 @@ function cerrarModalCliente() {
   document.getElementById("modalCliente").classList.add("hidden");
 }
 document.getElementById("btnNuevoCliente")?.addEventListener("click",  () => abrirModalCliente());
-document.getElementById("btnEditarCliente")?.addEventListener("click", () => { if (clienteActivoId) abrirModalCliente(clienteActivoId); });
 document.getElementById("closeModalCliente")?.addEventListener("click",  cerrarModalCliente);
 document.getElementById("btnCancelarCliente")?.addEventListener("click", cerrarModalCliente);
 
@@ -4626,25 +4717,7 @@ document.getElementById("btnConfirmarCliente")?.addEventListener("click", async 
   cerrarModalCliente();
 });
 
-// ── Eliminar cliente ──
-document.getElementById("btnEliminarCliente")?.addEventListener("click", async () => {
-  if (!clienteActivoId) return;
-  const c = clientesData[clienteActivoId];
-  if (!confirm(`¿Eliminar a ${c?.nombre}?\n\nSe eliminarán todos sus movimientos. Esta acción no se puede deshacer.`)) return;
-
-  // Borrar subcolección movimientos
-  const mSnap = await getDocs(collection(db, "clientes", clienteActivoId, "movimientos"));
-  const batch = writeBatch(db);
-  mSnap.forEach(d => batch.delete(d.ref));
-  batch.delete(doc(db, "clientes", clienteActivoId));
-  await batch.commit();
-
-  registrarLog("cliente", `Cliente eliminado — ${c?.nombre}`);
-  showToast("Cliente eliminado ✓", "success");
-  clienteActivoId = null;
-  document.getElementById("clienteDetalle").style.display      = "none";
-  document.getElementById("clienteDetalleVacio").style.display = "block";
-});
+// eliminarCliente ahora manejado via delegación en tabla
 
 // ── Modal cobrar ──
 function abrirModalCobrar() {
@@ -4660,7 +4733,6 @@ function abrirModalCobrar() {
 function cerrarModalCobrar() {
   document.getElementById("modalCobrarCliente").classList.add("hidden");
 }
-document.getElementById("btnCobrarCliente")?.addEventListener("click",        abrirModalCobrar);
 document.getElementById("closeModalCobrarCliente")?.addEventListener("click", cerrarModalCobrar);
 document.getElementById("btnCancelarCobrar")?.addEventListener("click",       cerrarModalCobrar);
 
@@ -6013,7 +6085,7 @@ document.getElementById("globalSearchResults")?.addEventListener("click", e => {
   }
   if (tipo === "cliente") {
     document.querySelector('[data-view="clientes"]')?.click();
-    setTimeout(() => renderClienteDetalle(id), 100);
+    setTimeout(() => { clienteExpandidoId = id; renderClientesLista(); }, 300);
   }
   if (tipo === "proveedor") {
     document.querySelector('[data-view="proveedores"]')?.click();
