@@ -474,6 +474,7 @@ function initFirebase() {
     renderProductosTabla();
     updateStockBadge();
     renderInicio();
+    renderNotifPanel();
   }));
 
   // Caja
@@ -484,6 +485,7 @@ function initFirebase() {
     renderGastos();
     updateCajaSidebar();
     renderInicio();
+    renderNotifPanel();
   }));
 
   // Clientes
@@ -503,6 +505,9 @@ function initFirebase() {
 
   // Usuarios
   initUsuariosListener();
+
+  // Notificaciones
+  initNotificaciones();
 
   // Config márgenes
   _unsubs.push(onSnapshot(doc(db, "config", "margenes"), snap => {
@@ -6140,3 +6145,238 @@ document.getElementById("usuariosTableBody")?.addEventListener("click", async e 
     showToast(`Usuario ${!activo ? "activado" : "desactivado"} ✓`, "success");
   }
 });
+
+// ============================================================
+//  NOTIFICACIONES Y ALERTAS
+// ============================================================
+let notifPermiso     = false;
+let notifEnviadas    = new Set(); // IDs ya notificados en esta sesión
+let alertasActivas   = [];
+
+// ── Pedir permiso ──
+async function pedirPermisoNotificaciones() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") { notifPermiso = true; return; }
+  if (Notification.permission === "denied") return;
+  const result = await Notification.requestPermission();
+  notifPermiso = result === "granted";
+}
+
+// ── Enviar notificación nativa ──
+function enviarNotif(titulo, cuerpo, id) {
+  if (!notifPermiso) return;
+  if (notifEnviadas.has(id)) return;
+  notifEnviadas.add(id);
+  try {
+    const n = new Notification(titulo, {
+      body: cuerpo,
+      icon: "/icon-192.png",
+      tag: id
+    });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch(e) {}
+}
+
+// ── Calcular todas las alertas ──
+function calcularAlertas() {
+  const alertas = [];
+  const hoy     = new Date(); hoy.setHours(0,0,0,0);
+  const manana  = new Date(hoy); manana.setDate(hoy.getDate() + 1);
+  const hoyKey  = hoy.toISOString().slice(0,10);
+
+  // 1. Stock bajo
+  const sinStock   = allProducts.filter(p => typeof p.stock === "number" && p.stock <= 0);
+  const stockBajo  = allProducts.filter(p => typeof p.stock === "number" && p.stock > 0 && p.stock <= (p.stockMin || 5));
+  sinStock.forEach(p => alertas.push({ id: `stock-0-${p._id}`, tipo: "stock", nivel: "critico", texto: `Sin stock — ${p.desc}`, accion: "productos" }));
+  stockBajo.forEach(p => alertas.push({ id: `stock-bajo-${p._id}`, tipo: "stock", nivel: "warning", texto: `Stock bajo — ${p.desc} (${p.stock} unid.)`, accion: "productos" }));
+
+  // 2. Notas vencidas o que vencen hoy/mañana
+  notasData.filter(n => !n.completada && n.fecha).forEach(n => {
+    const fechaN = new Date(n.fecha + "T00:00:00");
+    if (fechaN <= hoy) alertas.push({ id: `nota-venc-${n._id}`, tipo: "nota", nivel: "critico", texto: `Nota vencida — ${n.texto?.substring(0,50)}`, accion: "notas" });
+    else if (fechaN.getTime() === manana.getTime()) alertas.push({ id: `nota-manana-${n._id}`, tipo: "nota", nivel: "warning", texto: `Recordatorio mañana — ${n.texto?.substring(0,50)}`, accion: "notas" });
+  });
+
+  // 3. Clientes con deuda hace más de 7 días sin movimiento
+  Object.values(clientesData).forEach(c => {
+    if ((c.saldo || 0) >= 0) return;
+    const ultimoMov = c.ultimoMov || c.creado || 0;
+    const diasSinMov = Math.floor((Date.now() - ultimoMov) / 86400000);
+    if (diasSinMov >= 7) alertas.push({
+      id: `cliente-deuda-${c.nombre}`, tipo: "cliente", nivel: "warning",
+      texto: `${c.nombre} debe ${fmt(Math.abs(c.saldo))} sin movimiento hace ${diasSinMov} días`, accion: "clientes"
+    });
+  });
+
+  // 4. Caja — turno no abierto después de las 9hs
+  const horaActual = new Date().getHours();
+  const diaData    = cajaData[hoyKey] || {};
+  const turnoAbierto = (diaData.manana?.apertura && !diaData.manana?.cierre) ||
+                       (diaData.tarde?.apertura  && !diaData.tarde?.cierre);
+  const ningunoAbierto = !diaData.manana?.apertura && !diaData.tarde?.apertura;
+  if (ningunoAbierto && horaActual >= 9 && horaActual < 22) {
+    alertas.push({ id: `caja-sin-abrir-${hoyKey}`, tipo: "caja", nivel: "warning", texto: "Caja sin abrir — recordá abrir el turno", accion: "caja" });
+  }
+
+  // 5. Turno abierto hace más de 12hs
+  ["manana","tarde"].forEach(turno => {
+    const ap = diaData[turno]?.apertura;
+    if (ap && !diaData[turno]?.cierre && ap.hora) {
+      const [h, m] = ap.hora.split(":").map(Number);
+      const apertura = new Date(); apertura.setHours(h, m, 0, 0);
+      const horasAbierto = (Date.now() - apertura.getTime()) / 3600000;
+      if (horasAbierto > 12) alertas.push({
+        id: `caja-turno-largo-${turno}-${hoyKey}`, tipo: "caja", nivel: "warning",
+        texto: `Turno ${turno === "manana" ? "mañana" : "tarde"} abierto hace más de 12 horas`, accion: "caja"
+      });
+    }
+  });
+
+  return alertas;
+}
+
+// ── Render panel de alertas ──
+function renderNotifPanel() {
+  alertasActivas = calcularAlertas();
+  const badge = document.getElementById("notifBadge");
+  const body  = document.getElementById("notifPanelBody");
+
+  // Badge
+  if (badge) {
+    if (alertasActivas.length > 0) {
+      badge.textContent = alertasActivas.length;
+      badge.style.display = "flex";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+
+  if (!body) return;
+  if (!alertasActivas.length) {
+    body.innerHTML = '<div class="empty-row">Sin alertas activas.</div>';
+    return;
+  }
+
+  const TIPO_ICON = {
+    stock:   "ti-box",
+    nota:    "ti-notes",
+    cliente: "ti-users",
+    caja:    "ti-cash",
+  };
+  const TIPO_COLOR = {
+    critico: { bg: "#FCEBEB", color: "#A32D2D", dot: "#E24B4A" },
+    warning: { bg: "#FAEEDA", color: "#854F0B", dot: "#BA7517" },
+  };
+  const ACCION_LABEL = { productos: "Ver Productos", notas: "Ver Notas", clientes: "Ver Clientes", caja: "Ver Caja" };
+
+  body.innerHTML = alertasActivas.map((a, i) => {
+    const col    = TIPO_COLOR[a.nivel] || TIPO_COLOR.warning;
+    const icon   = TIPO_ICON[a.tipo]   || "ti-bell";
+    const isLast = i === alertasActivas.length - 1;
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:${isLast ? "none" : "1px solid var(--border)"}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${col.dot};flex-shrink:0;margin-top:4px"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.texto}</div>
+        <button type="button" class="notif-accion-btn" data-accion="${a.accion}"
+          style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;margin-top:3px;font-family:inherit">
+          ${ACCION_LABEL[a.accion] || "Ver"} →
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+
+  // Enviar notificaciones nativas para las nuevas
+  const grupos = {};
+  alertasActivas.forEach(a => {
+    if (!grupos[a.tipo]) grupos[a.tipo] = [];
+    grupos[a.tipo].push(a);
+  });
+  Object.entries(grupos).forEach(([tipo, lista]) => {
+    const id = `grupo-${tipo}-${lista.map(a=>a.id).join("")}`;
+    const titulos = { stock: "⚠️ Stock bajo", nota: "📝 Recordatorios", cliente: "💰 Clientes con deuda", caja: "🏪 Alerta de caja" };
+    const cuerpo = lista.map(a => a.texto).join("\n");
+    enviarNotif(titulos[tipo] || "Alerta", cuerpo, id);
+  });
+}
+
+// ── Toggle panel ──
+document.getElementById("btnNotificaciones")?.addEventListener("click", e => {
+  e.stopPropagation();
+  const panel = document.getElementById("notifPanel");
+  if (panel.style.display === "none") {
+    renderNotifPanel();
+    panel.style.display = "block";
+  } else {
+    panel.style.display = "none";
+  }
+});
+
+document.getElementById("btnCerrarNotifPanel")?.addEventListener("click", () => {
+  document.getElementById("notifPanel").style.display = "none";
+});
+
+// Cerrar al hacer click fuera
+document.addEventListener("click", e => {
+  const panel = document.getElementById("notifPanel");
+  const btn   = document.getElementById("btnNotificaciones");
+  if (panel && !panel.contains(e.target) && !btn?.contains(e.target)) {
+    panel.style.display = "none";
+  }
+});
+
+// Navegar al hacer click en acción
+document.getElementById("notifPanelBody")?.addEventListener("click", e => {
+  const btn = e.target.closest(".notif-accion-btn");
+  if (!btn) return;
+  document.getElementById("notifPanel").style.display = "none";
+  document.querySelector(`[data-view="${btn.dataset.accion}"]`)?.click();
+});
+
+// ── Modal de permiso ──
+function mostrarModalPermiso() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "default") return;
+  if (localStorage.getItem("notif-rechazado")) return;
+
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:3000;display:flex;align-items:center;justify-content:center";
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--radius);padding:0;width:420px;overflow:hidden;border:1px solid var(--border)">
+      <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:#EAF3DE;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B6D11" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:500;color:var(--text1)">Activar alertas de stock</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">Recibí notificaciones de stock bajo, notas vencidas y más</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px;display:flex;gap:8px;justify-content:flex-end">
+        <button id="notifRechazar" style="font-size:13px;padding:7px 14px">Ahora no</button>
+        <button id="notifAceptar" style="font-size:13px;padding:7px 14px;background:#1D9E75;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-family:inherit">Activar notificaciones</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector("#notifAceptar").addEventListener("click", async () => {
+    document.body.removeChild(overlay);
+    await pedirPermisoNotificaciones();
+    renderNotifPanel();
+  });
+  overlay.querySelector("#notifRechazar").addEventListener("click", () => {
+    localStorage.setItem("notif-rechazado", "1");
+    document.body.removeChild(overlay);
+  });
+}
+
+// ── Inicialización ──
+function initNotificaciones() {
+  // Pedir permiso después de 3 segundos
+  setTimeout(mostrarModalPermiso, 3000);
+  // Verificar permisos existentes
+  if (Notification.permission === "granted") notifPermiso = true;
+  // Calcular badge inicial
+  setTimeout(renderNotifPanel, 2000);
+  // Recalcular cada 5 minutos
+  setInterval(renderNotifPanel, 5 * 60 * 1000);
+}
