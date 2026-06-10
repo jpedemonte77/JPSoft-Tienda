@@ -1582,6 +1582,14 @@ document.getElementById("btnQuitarClienteVenta")?.addEventListener("click", () =
   ventaTipoActivo = "";
 });
 
+// Nuevo cliente desde el panel de cobro
+document.getElementById("btnNuevoClienteVenta")?.addEventListener("click", () => {
+  // Abrir modal de cliente — al guardar, el select se actualiza automáticamente
+  // via el snapshot de Firestore que repopula el select
+  window._abrirClienteDesdeVenta = true;
+  abrirModalCliente();
+});
+
 // Chips tipo de registro
 document.getElementById("ventaClienteBloque")?.addEventListener("click", e => {
   const chip = e.target.closest(".venta-tipo-chip");
@@ -2021,7 +2029,7 @@ function renderTurnoCard(turnoKey, turno, esHoy, manana, tarde) {
       </div>
       ${ventasOrdenadas.map(v=>`
         <div class="timeline-row" data-venta-id="${v._id||""}" data-turno="${turnoKey}" data-fecha="${cajaFechaKey}">
-          <span style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(v.items||[]).map(i=>i.desc).join(", ")}${v.nota ? `<span style="display:inline-block;margin-left:6px;font-size:10px;font-weight:500;padding:1px 7px;border-radius:10px;background:var(--warn-bg);color:#8a6000;border:1px solid var(--warn-border)">${v.nota}</span>` : ''}</span>
+          <span style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(v.items||[]).map(i=>i.desc).join(", ")}${v.nota ? `<span style="display:inline-block;margin-left:6px;font-size:10px;font-weight:500;padding:1px 7px;border-radius:10px;background:var(--warn-bg);color:#8a6000;border:1px solid var(--warn-border)">${v.nota}</span>` : ''}${v.clienteNombre ? `<span style="display:inline-block;margin-left:4px;font-size:10px;padding:1px 7px;border-radius:10px;background:#E6F1FB;color:#185FA5">${v.clienteNombre}${v.ventaTipo ? ` · ${v.ventaTipo}` : ""}</span>` : ''}</span>
           <span class="num" style="font-weight:500">${fmt(v.total)}</span>
           <span class="${metClass[v.metodo]||""}">${metLabel[v.metodo]||v.metodo}</span>
           <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${fmtHora(v.hora)||"—"}</span>
@@ -4767,6 +4775,25 @@ document.getElementById("btnConfirmarCliente")?.addEventListener("click", async 
     await setDoc(nuevoRef, { ...datos, saldo: 0, creado: Date.now(), ultimoMov: Date.now() });
     registrarLog("cliente", `Cliente creado — ${nombre}`);
     showToast(`Cliente creado ✓ — ${nombre}`, "success");
+
+    // Si fue creado desde el panel de cobro, seleccionarlo automáticamente
+    if (window._abrirClienteDesdeVenta) {
+      window._abrirClienteDesdeVenta = false;
+      setTimeout(() => {
+        const sel = document.getElementById("ventaClienteSelect");
+        if (sel) {
+          // Repopular y seleccionar
+          sel.innerHTML = '<option value="">Sin cliente…</option>';
+          Object.entries(clientesData).sort((a,b) => (a[1].nombre||"").localeCompare(b[1].nombre||"")).forEach(([id, c]) => {
+            const opt = document.createElement("option");
+            opt.value = id; opt.textContent = c.nombre;
+            sel.appendChild(opt);
+          });
+          sel.value = nuevoRef.id;
+          sel.dispatchEvent(new Event("change"));
+        }
+      }, 500);
+    }
   }
   cerrarModalCliente();
 });
@@ -4878,7 +4905,7 @@ document.getElementById("btnCobroNuevoCliente")?.addEventListener("click", () =>
 // ── Vincular cliente al confirmar venta ──
 // Esta función se llama desde confirmarVentaFinal cuando hay Fiado o Pago
 async function registrarMovimientoCliente(tipo, monto, ventaId, nota) {
-  const clienteId = document.getElementById("cobroClienteSelect")?.value;
+  const clienteId = document.getElementById("ventaClienteSelect")?.value;
   if (!clienteId) return;
   const c = clientesData[clienteId];
   if (!c) return;
@@ -4889,7 +4916,7 @@ async function registrarMovimientoCliente(tipo, monto, ventaId, nota) {
   const movRef = doc(collection(db, "clientes", clienteId, "movimientos"));
   await setDoc(movRef, {
     tipo, monto: Math.round(monto),
-    concepto: nota || (tipo === "fiado" ? "Venta fiada" : "Pago"),
+    concepto: nota || (tipo === "fiado" ? "Venta fiada" : "Cobro"),
     ventaId, fecha: Date.now(), admin: getNombreUsuario()
   });
   await updateDoc(doc(db, "clientes", clienteId), { saldo: nuevoSaldo, ultimoMov: Date.now() });
