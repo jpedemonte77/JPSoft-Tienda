@@ -610,22 +610,20 @@
         </div>
       </div>
 
-      <!-- Tabla de clientes -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px">
-        <table>
+      <!-- Tabla de clientes con filas expandibles -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <table style="table-layout:fixed;width:100%">
           <colgroup>
-            <col>
-            <col style="width:160px">
+            <col style="width:170px">
             <col style="width:130px">
             <col style="width:120px">
-            <col style="width:170px">
+            <col style="width:150px">
             <col style="width:100px">
-            <col style="width:70px">
+            <col style="width:36px">
           </colgroup>
           <thead>
             <tr>
               <th>Nombre</th>
-              <th>Razón Social</th>
               <th>WhatsApp</th>
               <th>Localidad</th>
               <th>Condición IVA</th>
@@ -633,51 +631,9 @@
               <th></th>
             </tr>
           </thead>
-          <tbody id="clientesLista"></tbody>
+          <tbody id="clientesLista" tabindex="0"></tbody>
         </table>
         <div class="empty-row" id="clientesListaEmpty">No hay clientes registrados.</div>
-      </div>
-
-      <!-- Detalle cliente -->
-      <div id="clienteDetalle" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:none">
-        <div style="padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div id="clienteDetalleAvatar" style="width:32px;height:32px;border-radius:50%;background:#FCEBEB;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#A32D2D;flex-shrink:0"></div>
-            <div>
-              <div id="clienteDetalleNombre" style="font-size:13px;font-weight:600;color:var(--text1)"></div>
-              <div id="clienteDetalleSaldo" style="font-size:11px;color:var(--danger)"></div>
-            </div>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center">
-            <a id="clienteDetalleWA" href="#" target="_blank" rel="noopener" style="display:none;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--radius-sm);background:#E1F5EE;border:1px solid #9FE1CB;font-size:11.5px;color:#0F6E56;text-decoration:none">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#1D9E75"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.05 2C6.495 2 2 6.495 2 12.05c0 1.868.497 3.623 1.362 5.14L2 22l4.948-1.337A10.01 10.01 0 0 0 12.05 22C17.605 22 22 17.505 22 11.95 22 6.495 17.605 2 12.05 2zm0 18.385a8.33 8.33 0 0 1-4.239-1.158l-.304-.18-3.143.849.845-3.073-.198-.315A8.324 8.324 0 0 1 3.715 12.05c0-4.598 3.737-8.335 8.335-8.335 4.598 0 8.335 3.737 8.335 8.335 0 4.598-3.737 8.335-8.335 8.335z"/></svg>
-              Contactar
-            </a>
-            <button class="btn-primary" id="btnCobrarCliente" style="font-size:11.5px;padding:5px 10px">Cobrar</button>
-            <button class="btn-secondary" id="btnEditarCliente" style="font-size:11.5px;padding:5px 10px">Editar</button>
-            <button class="btn-danger" id="btnEliminarCliente" style="font-size:11.5px;padding:5px 8px">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-            </button>
-          </div>
-        </div>
-        <table>
-          <colgroup>
-            <col style="width:110px">
-            <col>
-            <col style="width:110px">
-            <col style="width:90px">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Concepto</th>
-              <th class="num">Monto</th>
-              <th style="text-align:center">Tipo</th>
-            </tr>
-          </thead>
-          <tbody id="clienteMovsBody"></tbody>
-        </table>
-        <div class="empty-row" id="clienteMovsEmpty" style="display:none">Sin movimientos registrados.</div>
       </div>
 
     </div>
@@ -1360,6 +1316,24 @@
           <button class="pago-chip" data-metodo="mp" style="padding:10px 8px;font-size:14px;text-align:center">Mercado Pago</button>
           <button class="pago-chip" data-metodo="debito" style="padding:10px 8px;font-size:14px;text-align:center">Débito</button>
           <button class="pago-chip" data-metodo="credito" style="padding:10px 8px;font-size:14px;text-align:center">Crédito</button>
+        </div>
+      </div>
+
+      <!-- Cliente de la venta (opcional) -->
+      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:7px">Cliente <span style="font-size:11px;color:var(--text3)">(opcional)</span></div>
+        <div id="ventaClienteSelector" style="display:flex;align-items:center;gap:8px">
+          <select id="ventaClienteSelect" class="form-select" style="flex:1;font-size:12px">
+            <option value="">Sin cliente…</option>
+          </select>
+        </div>
+        <div id="ventaClienteSeleccionado" style="display:none;align-items:center;gap:8px;background:#EAF3DE;border:1px solid #9FE1CB;border-radius:var(--radius-sm);padding:6px 10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#1D9E75;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0" id="ventaClienteAvatar">—</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12.5px;font-weight:500;color:#085041;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="ventaClienteNombre">—</div>
+            <div style="font-size:11px;color:#0F6E56" id="ventaClienteDeuda"></div>
+          </div>
+          <button type="button" id="btnQuitarClienteVenta" style="background:none;border:none;cursor:pointer;color:#0F6E56;font-size:14px;padding:2px">✕</button>
         </div>
       </div>
 
