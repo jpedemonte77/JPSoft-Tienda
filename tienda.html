@@ -663,7 +663,7 @@
       <div class="productos-toolbar">
         <div class="productos-search-wrap">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" class="search-input" id="prodSearchInput" placeholder="Buscar por nombre, código de barras o código interno…" style="padding-left:32px" />
+          <input type="text" class="search-input" id="prodSearchInput" placeholder="Buscar producto…" style="padding-left:32px" />
         </div>
         <select class="form-select" id="prodFilterProv" style="width:160px">
           <option value="">Todos los proveedores</option>
@@ -1396,7 +1396,7 @@
           <input type="text" class="form-input" id="pf-cod" placeholder="7790895000052" />
         </div>
         <div class="form-group" style="margin-bottom:0">
-          <label class="form-label" style="margin-bottom:3px">Rubro / Familia</label>
+          <label class="form-label" style="margin-bottom:3px">Rubro / Familia / Categoría</label>
           <input type="text" class="form-input" id="pf-rubro" placeholder="Ej: Bebidas" list="rubrosList" autocomplete="off" />
           <datalist id="rubrosList"></datalist>
         </div>
@@ -1445,10 +1445,13 @@
         <span style="font-size:11px;color:var(--text3)">— Los productos inactivos no aparecen en Venta</span>
       </div>
 
-      <!-- Historial de precios -->
-      <div id="historialPreciosWrap" class="hidden" style="margin-top:10px">
-        <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Historial de precios</div>
-        <div id="historialPreciosList" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;max-height:120px;overflow-y:auto"></div>
+      <!-- Historial de precios — colapsable -->
+      <div id="historialPreciosWrap" class="hidden" style="margin-top:10px;border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden">
+        <div id="historialPreciosToggle" style="padding:7px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;background:var(--surface2)">
+          <span style="font-size:12px;font-weight:500;color:var(--text2)">Historial de precios</span>
+          <svg id="historialPreciosChevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text3);transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div id="historialPreciosList" style="display:none;max-height:140px;overflow-y:auto"></div>
       </div>
     </div>
     <div class="modal-footer" style="padding:8px 16px">
