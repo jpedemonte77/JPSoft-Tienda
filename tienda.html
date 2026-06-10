@@ -578,10 +578,20 @@
     <div class="view" id="view-clientes">
       <div class="view-header">
         <div></div>
-        <button class="btn-primary" id="btnNuevoCliente">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Nuevo cliente
-        </button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-primary" id="btnNuevoCliente">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo cliente
+          </button>
+          <button class="btn-secondary" id="btnExportarClientesExcel">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Exportar Clientes
+          </button>
+          <button class="btn-secondary" id="btnImprimirClientesPDF">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimir
+          </button>
+        </div>
       </div>
 
       <!-- Stats -->
@@ -1600,25 +1610,79 @@
      MODAL: NUEVO / EDITAR CLIENTE
 ══════════════════════════════ -->
 <div class="modal-overlay hidden" id="modalCliente">
-  <div class="modal" style="max-width:400px">
+  <div class="modal" style="max-width:500px">
     <div class="modal-header">
       <span class="modal-title" id="modalClienteTitulo">Nuevo cliente</span>
       <button class="modal-close" id="closeModalCliente">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="clienteEditId" />
-      <div class="form-group">
-        <label class="form-label">Nombre</label>
-        <input type="text" class="form-input" id="clienteNombreInput" placeholder="Ej: Martín González" maxlength="60" />
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label class="form-label">Nombre <span style="color:var(--danger)">*</span></label>
+          <input type="text" class="form-input" id="clienteNombreInput" placeholder="Ej: Martín González" maxlength="60" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Razón Social</label>
+          <input type="text" class="form-input" id="clienteRazonSocialInput" placeholder="Ej: González S.R.L." maxlength="80" />
+        </div>
       </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div class="form-group">
+          <label class="form-label">WhatsApp</label>
+          <input type="tel" class="form-input" id="clienteTelInput" placeholder="Ej: 3415551234" maxlength="20" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="clienteEmailInput" placeholder="Ej: martin@mail.com" maxlength="80" />
+        </div>
+      </div>
+
       <div class="form-group" style="margin-top:10px">
-        <label class="form-label">Teléfono <span style="font-weight:400;color:var(--text3)">(opcional · para WhatsApp)</span></label>
-        <input type="tel" class="form-input" id="clienteTelInput" placeholder="Ej: 3415551234" maxlength="20" />
+        <label class="form-label">Condición frente al IVA</label>
+        <select class="form-select" id="clienteIvaSelect" style="width:100%">
+          <option value="">Seleccioná...</option>
+          <option>IVA Responsable Inscripto</option>
+          <option>IVA Sujeto Exento</option>
+          <option>Consumidor Final</option>
+          <option>Responsable Monotributo</option>
+          <option>Sujeto No Categorizado</option>
+          <option>Proveedor del Exterior</option>
+          <option>Cliente del Exterior</option>
+          <option>IVA Liberado - Ley N° 19.640</option>
+          <option>Monotributista Social</option>
+          <option>IVA No Alcanzado</option>
+          <option>Monotributista Trabajador Independiente Promovido</option>
+        </select>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div class="form-group">
+          <label class="form-label">CUIT / CUIL</label>
+          <input type="text" class="form-input" id="clienteCuitInput" placeholder="Ej: 20-12345678-9" maxlength="15" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">DNI</label>
+          <input type="text" class="form-input" id="clienteDniInput" placeholder="Ej: 30.123.456" maxlength="12" />
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div class="form-group">
+          <label class="form-label">Domicilio</label>
+          <input type="text" class="form-input" id="clienteDomicilioInput" placeholder="Ej: San Martín 1234" maxlength="100" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Localidad</label>
+          <input type="text" class="form-input" id="clienteLocalidadInput" placeholder="Ej: Rosario" maxlength="60" />
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" id="btnCancelarCliente">Cancelar</button>
-      <button class="btn-primary" id="btnConfirmarCliente">Guardar</button>
+      <button class="btn-primary" id="btnConfirmarCliente">Guardar cliente</button>
     </div>
   </div>
 </div>
