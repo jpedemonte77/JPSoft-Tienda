@@ -446,6 +446,9 @@ function initFirebase() {
   // Compras
   initComprasListener();
 
+  // Notas
+  initNotasListener();
+
   // Config márgenes
   _unsubs.push(onSnapshot(doc(db, "config", "margenes"), snap => {
     if (snap.exists()) Object.assign(margenesConfig, snap.data());
@@ -485,7 +488,7 @@ function rebuildGananciaMap() {
 // ============================================================
 //  NAVEGACIÓN
 // ============================================================
-const VIEWS = { inicio: "Inicio", venta: "Venta", caja: "Caja", gastos: "Gastos", compras: "Compras", clientes: "Clientes", productos: "Productos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial", actividad: "Actividad", soporte: "Soporte", backup: "Backup" };
+const VIEWS = { inicio: "Inicio", venta: "Venta", caja: "Caja", notas: "Notas", gastos: "Gastos", compras: "Compras", clientes: "Clientes", productos: "Productos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial", actividad: "Actividad", soporte: "Soporte", backup: "Backup" };
 
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -500,6 +503,7 @@ document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
     document.getElementById("sidebar-overlay").classList.remove("open");
     // Renders específicos por vista
     if (view === "inicio")            renderInicio();
+    if (view === "notas")             renderNotas();
     if (view === "historial-precios") { renderHistorialPrecios(); renderHistorialVentas(); }
     if (view === "actividad")         renderActividad();
     if (view === "gastos")            renderGastos();
@@ -4177,6 +4181,8 @@ function renderInicio() {
       }).join("");
     }
   }
+  // ── Notas pendientes ──
+  renderNotasDashboard();
 }
 
 // ── Render historial de compras ──
@@ -5197,5 +5203,188 @@ document.getElementById("btnImprimirComprasPDF")?.addEventListener("click", asyn
   } finally {
     document.body.removeChild(container);
     btn.disabled = false; btn.innerHTML = orig;
+  }
+});
+
+// ============================================================
+//  NOTAS Y RECORDATORIOS
+// ============================================================
+let notasData = [];
+
+function getNotaUrgencia(fechaStr) {
+  if (!fechaStr) return "sin-fecha";
+  const hoy    = new Date(); hoy.setHours(0,0,0,0);
+  const fecha  = new Date(fechaStr + "T00:00:00");
+  const diff   = Math.round((fecha - hoy) / 86400000);
+  if (diff < 0)  return "vencida";
+  if (diff === 0) return "hoy";
+  if (diff === 1) return "manana";
+  return "proxima";
+}
+
+function fmtFechaNota(fechaStr) {
+  if (!fechaStr) return "Sin fecha de vencimiento";
+  const [y, m, d] = fechaStr.split("-");
+  const urg = getNotaUrgencia(fechaStr);
+  const base = `${parseInt(d)}/${parseInt(m)}/${y}`;
+  if (urg === "vencida") return `Vencida · ${base}`;
+  if (urg === "hoy")     return `Vence hoy · ${base}`;
+  if (urg === "manana")  return `Mañana · ${base}`;
+  return base;
+}
+
+function colorNota(nota) {
+  if (nota.completada) return { dot: "var(--border2)", text: "var(--text3)", label: "Completada" };
+  const urg = getNotaUrgencia(nota.fecha);
+  if (urg === "vencida" || urg === "hoy") return { dot: "#E24B4A", text: "var(--danger)", label: fmtFechaNota(nota.fecha) };
+  if (urg === "manana")  return { dot: "#BA7517", text: "var(--warn, #BA7517)", label: fmtFechaNota(nota.fecha) };
+  return { dot: "var(--text3)", text: "var(--text3)", label: fmtFechaNota(nota.fecha) };
+}
+
+// ── Render vista Notas ──
+function renderNotas() {
+  const grid = document.getElementById("notasGrid");
+  if (!grid) return;
+
+  const pendientes   = notasData.filter(n => !n.completada).sort((a,b) => {
+    if (!a.fecha && !b.fecha) return 0;
+    if (!a.fecha) return 1;
+    if (!b.fecha) return -1;
+    return a.fecha.localeCompare(b.fecha);
+  });
+  const completadas  = notasData.filter(n => n.completada).sort((a,b) => (b.ts||"").localeCompare(a.ts||""));
+  const lista = [...pendientes, ...completadas];
+
+  if (!lista.length) {
+    grid.innerHTML = '<div class="empty-row" style="grid-column:1/-1">No hay notas registradas.</div>';
+    return;
+  }
+
+  grid.innerHTML = lista.map(n => {
+    const col = colorNota(n);
+    const comp = n.completada;
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;${comp ? "opacity:.65" : ""}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:500;color:var(--text1);${comp ? "text-decoration:line-through;color:var(--text3)" : ""}">${n.texto || "—"}</div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          ${!comp ? `<button type="button" class="nota-accion-btn" data-nota-edit="${n._id}" style="background:none;border:none;cursor:pointer;padding:3px;color:var(--text3)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>` : ""}
+          <button type="button" class="nota-accion-btn" data-nota-del="${n._id}" style="background:none;border:none;cursor:pointer;padding:3px;color:var(--text3)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:${col.text};margin-bottom:10px;display:flex;align-items:center;gap:4px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        ${col.label}
+      </div>
+      <button type="button" class="nota-accion-btn btn-${comp ? "secondary" : "primary"}" data-nota-toggle="${n._id}"
+        style="width:100%;padding:6px;font-size:12px;text-align:center;${comp ? "" : "background:var(--success,#1D9E75);color:#fff;border:none;border-radius:var(--radius-sm)"}">
+        ${comp ? "↩ Desmarcar" : "✓ Marcar como completada"}
+      </button>
+    </div>`;
+  }).join("");
+}
+
+// ── Render bloque notas en Dashboard ──
+function renderNotasDashboard() {
+  const wrap = document.getElementById("inicioNotasWrap");
+  if (!wrap) return;
+
+  const pendientes = notasData
+    .filter(n => !n.completada)
+    .sort((a,b) => {
+      if (!a.fecha && !b.fecha) return 0;
+      if (!a.fecha) return 1;
+      if (!b.fecha) return -1;
+      return a.fecha.localeCompare(b.fecha);
+    })
+    .slice(0, 4);
+
+  if (!pendientes.length) {
+    wrap.innerHTML = '<div class="empty-row">Sin notas pendientes.</div>';
+    return;
+  }
+
+  wrap.innerHTML = pendientes.map((n, i) => {
+    const col    = colorNota(n);
+    const isLast = i === pendientes.length - 1;
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:${isLast ? "none" : "1px solid var(--border)"}">
+      <div style="width:7px;height:7px;border-radius:50%;background:${col.dot};flex-shrink:0;margin-top:4px"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.texto || "—"}</div>
+        <div style="font-size:11px;color:${col.text};margin-top:1px">${col.label}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── Firestore listener ──
+function initNotasListener() {
+  _unsubs.push(onSnapshot(collection(db, "notas"), snap => {
+    notasData = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+    if (document.getElementById("view-notas")?.classList.contains("active")) renderNotas();
+    renderNotasDashboard();
+  }));
+}
+
+// ── Modal nueva/editar nota ──
+function abrirModalNota(id = null) {
+  const n = id ? notasData.find(x => x._id === id) : null;
+  document.getElementById("notaEditId").value    = id || "";
+  document.getElementById("modalNotaTitulo").textContent = id ? "Editar nota" : "Nueva nota";
+  document.getElementById("notaTextoInput").value = n?.texto || "";
+  document.getElementById("notaFechaInput").value = n?.fecha || "";
+  document.getElementById("btnConfirmarNota").textContent = id ? "Guardar cambios" : "Guardar nota";
+  document.getElementById("modalNota").classList.remove("hidden");
+  setTimeout(() => document.getElementById("notaTextoInput").focus(), 80);
+}
+function cerrarModalNota() {
+  document.getElementById("modalNota").classList.add("hidden");
+}
+
+document.getElementById("btnNuevaNota")?.addEventListener("click",  () => abrirModalNota());
+document.getElementById("closeModalNota")?.addEventListener("click",  cerrarModalNota);
+document.getElementById("btnCancelarNota")?.addEventListener("click", cerrarModalNota);
+
+document.getElementById("btnConfirmarNota")?.addEventListener("click", async () => {
+  const texto = document.getElementById("notaTextoInput").value.trim();
+  if (!texto) { showToast("Escribí al menos una nota.", "error"); return; }
+  const fecha = document.getElementById("notaFechaInput").value;
+  const id    = document.getElementById("notaEditId").value;
+
+  if (id) {
+    await updateDoc(doc(db, "notas", id), { texto, fecha });
+    showToast("Nota actualizada ✓", "success");
+  } else {
+    await setDoc(doc(collection(db, "notas")), {
+      texto, fecha, completada: false,
+      ts: new Date().toISOString(), admin: getNombreUsuario()
+    });
+    showToast("Nota guardada ✓", "success");
+  }
+  cerrarModalNota();
+});
+
+// ── Delegación en grid de notas ──
+document.getElementById("notasGrid")?.addEventListener("click", async e => {
+  const btnEdit   = e.target.closest("[data-nota-edit]");
+  const btnDel    = e.target.closest("[data-nota-del]");
+  const btnToggle = e.target.closest("[data-nota-toggle]");
+
+  if (btnEdit) { abrirModalNota(btnEdit.dataset.notaEdit); return; }
+
+  if (btnDel) {
+    if (!confirm("¿Eliminar esta nota?")) return;
+    await deleteDoc(doc(db, "notas", btnDel.dataset.notaDel));
+    showToast("Nota eliminada ✓", "success");
+    return;
+  }
+
+  if (btnToggle) {
+    const n = notasData.find(x => x._id === btnToggle.dataset.notaToggle);
+    if (!n) return;
+    await updateDoc(doc(db, "notas", n._id), { completada: !n.completada });
   }
 });
