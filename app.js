@@ -5508,3 +5508,129 @@ document.getElementById("btnGuardarTicketPDF")?.addEventListener("click", async 
     btn.disabled = false; btn.innerHTML = orig;
   }
 });
+
+// ============================================================
+//  ACTUALIZACIÓN MASIVA DE PRECIOS
+// ============================================================
+let actPreciosTipo = "aumento";
+
+function cerrarModalActualizarPrecios() {
+  document.getElementById("modalActualizarPrecios").classList.add("hidden");
+}
+
+function abrirModalActualizarPrecios() {
+  // Popular proveedores
+  const sel = document.getElementById("actPreciosProvSelect");
+  sel.innerHTML = '<option value="">Seleccioná un proveedor…</option>';
+  Object.values(proveedores).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.nombre; opt.textContent = p.nombre;
+    sel.appendChild(opt);
+  });
+  // Reset
+  actPreciosTipo = "aumento";
+  document.querySelectorAll(".act-precio-tipo").forEach(b => {
+    const isAumento = b.dataset.tipo === "aumento";
+    b.style.background    = isAumento ? "#EEEDFE" : "var(--surface2)";
+    b.style.color         = isAumento ? "#3C3489" : "var(--text2)";
+    b.style.borderColor   = isAumento ? "#C5C2F5" : "var(--border2)";
+    b.style.fontWeight    = isAumento ? "500" : "400";
+  });
+  document.getElementById("actPreciosPct").value = "0";
+  document.getElementById("actPreciosPreview").style.display = "none";
+  document.getElementById("modalActualizarPrecios").classList.remove("hidden");
+  setTimeout(() => document.getElementById("actPreciosPct").focus(), 80);
+}
+
+function renderActPreciosPreview() {
+  const prov   = document.getElementById("actPreciosProvSelect").value;
+  const pct    = parseFloat(document.getElementById("actPreciosPct").value) || 0;
+  const preview = document.getElementById("actPreciosPreview");
+  const lista   = document.getElementById("actPreciosPreviewLista");
+  const label   = document.getElementById("actPreciosPreviewLabel");
+
+  if (!prov || pct <= 0) { preview.style.display = "none"; return; }
+
+  const productos = allProducts.filter(p => p.proveedor === prov && p.lista > 0);
+  if (!productos.length) { preview.style.display = "none"; return; }
+
+  preview.style.display = "block";
+  label.textContent = `Vista previa — ${productos.length} producto${productos.length > 1 ? "s" : ""} afectado${productos.length > 1 ? "s" : ""}`;
+
+  lista.innerHTML = productos.slice(0, 8).map(p => {
+    const nuevo = actPreciosTipo === "aumento"
+      ? Math.round(p.lista * (1 + pct / 100))
+      : Math.round(p.lista * (1 - pct / 100));
+    return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px">
+      <span style="color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;padding-right:10px">${p.desc}</span>
+      <span style="color:var(--text3);white-space:nowrap">${fmt(p.lista)} → <strong style="color:var(--text1)">${fmt(nuevo)}</strong></span>
+    </div>`;
+  }).join("") + (productos.length > 8 ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">... y ${productos.length - 8} más</div>` : "");
+}
+
+document.getElementById("btnActualizarPrecios")?.addEventListener("click", abrirModalActualizarPrecios);
+document.getElementById("closeModalActualizarPrecios")?.addEventListener("click", cerrarModalActualizarPrecios);
+document.getElementById("btnCancelarActualizarPrecios")?.addEventListener("click", cerrarModalActualizarPrecios);
+
+// Chips tipo
+document.querySelectorAll(".act-precio-tipo").forEach(btn => {
+  btn.addEventListener("click", () => {
+    actPreciosTipo = btn.dataset.tipo;
+    document.querySelectorAll(".act-precio-tipo").forEach(b => {
+      const active = b.dataset.tipo === actPreciosTipo;
+      b.style.background  = active ? "#EEEDFE" : "var(--surface2)";
+      b.style.color       = active ? "#3C3489" : "var(--text2)";
+      b.style.borderColor = active ? "#C5C2F5" : "var(--border2)";
+      b.style.fontWeight  = active ? "500" : "400";
+    });
+    renderActPreciosPreview();
+  });
+});
+
+document.getElementById("actPreciosProvSelect")?.addEventListener("change", renderActPreciosPreview);
+document.getElementById("actPreciosPct")?.addEventListener("input", renderActPreciosPreview);
+
+// Aplicar actualización
+document.getElementById("btnConfirmarActualizarPrecios")?.addEventListener("click", async () => {
+  const prov = document.getElementById("actPreciosProvSelect").value;
+  const pct  = parseFloat(document.getElementById("actPreciosPct").value) || 0;
+
+  if (!prov) { showToast("Seleccioná un proveedor.", "error"); return; }
+  if (pct <= 0) { showToast("Ingresá un porcentaje mayor a 0.", "error"); return; }
+
+  const productos = allProducts.filter(p => p.proveedor === prov && p.lista > 0);
+  if (!productos.length) { showToast("No hay productos con precio para este proveedor.", "error"); return; }
+
+  const tipoLabel = actPreciosTipo === "aumento" ? `+${pct}%` : `-${pct}%`;
+  if (!confirm(`¿Aplicar ${tipoLabel} al P. Lista de ${productos.length} productos de ${prov}?\n\nEsta acción no se puede deshacer.`)) return;
+
+  const btn  = document.getElementById("btnConfirmarActualizarPrecios");
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "Aplicando…";
+
+  try {
+    const batch = writeBatch(db);
+    const admin = getNombreUsuario();
+    productos.forEach(p => {
+      const nuevo = actPreciosTipo === "aumento"
+        ? Math.round(p.lista * (1 + pct / 100))
+        : Math.round(p.lista * (1 - pct / 100));
+      // Guardar historial de precio
+      const histRef = doc(collection(db, "productos", p._id, "historialPrecios"));
+      batch.set(histRef, {
+        anterior: p.lista, nuevo, ts: new Date().toISOString(),
+        usuario: admin, motivo: `Actualización masiva ${tipoLabel} — ${prov}`
+      });
+      // Actualizar precio
+      batch.update(doc(db, "productos", p._id), { lista: nuevo });
+    });
+    await batch.commit();
+    registrarLog("precio", `Actualización masiva ${tipoLabel} — ${productos.length} productos · ${prov}`);
+    showToast(`Precios actualizados ✓ — ${productos.length} productos de ${prov}`, "success");
+    cerrarModalActualizarPrecios();
+  } catch(err) {
+    showToast("Error al actualizar: " + err.message, "error");
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+});
