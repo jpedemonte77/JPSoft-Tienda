@@ -872,7 +872,7 @@ body {
 /* Tabla productos */
 .table-wrap { overflow-y: auto; flex: 1; }
 
-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+table { width: 100%; border-collapse: collapse; }
 
 th {
   font-size: 11px;
