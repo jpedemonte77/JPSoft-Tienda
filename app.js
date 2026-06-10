@@ -4409,8 +4409,9 @@ function getAvatarColor(nombre) {
 
 // ── Render lista ──
 function renderClientesLista() {
-  const lista = document.getElementById("clientesLista");
-  if (!lista) return;
+  const tbody = document.getElementById("clientesLista");
+  const empty = document.getElementById("clientesListaEmpty");
+  if (!tbody) return;
   const clientes = Object.entries(clientesData).sort((a, b) => (a[1].nombre || "").localeCompare(b[1].nombre || ""));
 
   // Stats
@@ -4420,27 +4421,33 @@ function renderClientesLista() {
   document.getElementById("cStatDeudores").textContent = deudores;
 
   if (!clientes.length) {
-    lista.innerHTML = '<div class="empty-row">No hay clientes registrados.</div>';
+    tbody.innerHTML = "";
+    if (empty) empty.style.display = "block";
     return;
   }
+  if (empty) empty.style.display = "none";
 
-  lista.innerHTML = clientes.map(([id, c]) => {
-    const saldo  = c.saldo || 0;
-    const av     = getAvatarColor(c.nombre || "?");
-    const inic   = getIniciales(c.nombre || "?");
-    const saldoTxt = saldo < 0 ? `<span style="color:#A32D2D">${fmt(Math.abs(saldo))}</span>`
-                   : saldo > 0 ? `<span style="color:#3B6D11">A favor: ${fmt(saldo)}</span>`
-                   : `<span style="color:var(--text3)">Sin deuda</span>`;
-    return `<div class="cliente-row${clienteActivoId === id ? ' active' : ''}" data-id="${id}">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="cliente-avatar" style="background:${av.bg};color:${av.color}">${inic}</div>
-        <div>
-          <div style="font-size:12.5px;font-weight:500;color:var(--text1)">${c.nombre}</div>
-          <div style="font-size:11px">${saldoTxt}</div>
+  tbody.innerHTML = clientes.map(([id, c]) => {
+    const saldo = c.saldo || 0;
+    const saldoColor = saldo < 0 ? "#A32D2D" : saldo > 0 ? "#3B6D11" : "var(--text3)";
+    const saldoTxt   = saldo < 0 ? fmt(saldo) : saldo > 0 ? `+${fmt(saldo)}` : "$0";
+    const ivaShort   = (c.iva || "—").replace("IVA ", "").replace("Responsable ", "Resp. ");
+    const isActivo   = clienteActivoId === id;
+    return `<tr class="cliente-row${isActivo ? " active" : ""}" data-id="${id}" style="cursor:pointer${isActivo ? ";background:var(--bg3)" : ""}">
+      <td style="font-weight:500;color:var(--text1)">${c.nombre || "—"}</td>
+      <td style="font-size:12px;color:var(--text2)">${c.razonSocial || "—"}</td>
+      <td style="font-size:12px;color:var(--text2)">${c.telefono || "—"}</td>
+      <td style="font-size:12px;color:var(--text2)">${c.localidad || "—"}</td>
+      <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text2)">${ivaShort}</span></td>
+      <td class="num" style="font-weight:600;color:${saldoColor}">${saldoTxt}</td>
+      <td style="text-align:center">
+        <div style="display:flex;gap:4px;justify-content:center">
+          <button type="button" class="cliente-edit-btn" data-id="${id}" style="background:none;border:none;cursor:pointer;padding:3px;color:var(--text3)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
         </div>
-      </div>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>`;
+      </td>
+    </tr>`;
   }).join("");
 
   // Cobrado este mes
@@ -4479,8 +4486,25 @@ function renderClienteDetalle(id) {
   // WhatsApp
   const waBtn = document.getElementById("clienteDetalleWA");
   if (c.telefono) {
-    const tel = c.telefono.replace(/\D/g, "");
-    waBtn.href = `https://wa.me/54${tel}`;
+    // Normalizar número para WhatsApp Argentina
+    // Eliminar todo excepto dígitos
+    let tel = c.telefono.replace(/\D/g, "");
+    // Si empieza con 54 (código país ya incluido), usar tal cual
+    // Si empieza con 9 (ej: 9341...), agregar 54 adelante
+    // Si empieza con 0 (ej: 0341...), sacar el 0 y agregar 549
+    // Si empieza con 3 o 1 (ej: 341...), agregar 549 adelante
+    if (tel.startsWith("549") || tel.startsWith("541")) {
+      // ya tiene código país + 9
+    } else if (tel.startsWith("54")) {
+      tel = "549" + tel.slice(2);
+    } else if (tel.startsWith("0")) {
+      tel = "549" + tel.slice(1);
+    } else if (tel.startsWith("9")) {
+      tel = "54" + tel;
+    } else {
+      tel = "549" + tel;
+    }
+    waBtn.href = `https://wa.me/${tel}`;
     waBtn.style.display = "flex";
   } else {
     waBtn.style.display = "none";
@@ -4521,6 +4545,8 @@ function renderClienteDetalle(id) {
 
 // Delegación en lista
 document.getElementById("clientesLista")?.addEventListener("click", e => {
+  const editBtn = e.target.closest(".cliente-edit-btn");
+  if (editBtn) { abrirModalCliente(editBtn.dataset.id); return; }
   const row = e.target.closest(".cliente-row");
   if (row) renderClienteDetalle(row.dataset.id);
 });
