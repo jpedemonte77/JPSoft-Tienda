@@ -231,7 +231,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.75rem;
   flex: 1;
 }
 
@@ -266,7 +266,7 @@ body {
 }
 
 .sidebar-bottom {
-  padding: 0.75rem;
+  padding: 0.4rem 0.75rem;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -274,17 +274,17 @@ body {
 .caja-sidebar {
   background: var(--bg3);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 7px 10px;
 }
 .caja-sidebar-label {
   font-size: 10px;
   color: var(--text3);
   text-transform: uppercase;
   letter-spacing: .06em;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 .caja-sidebar-value {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--success);
   font-family: 'DM Mono', monospace;
