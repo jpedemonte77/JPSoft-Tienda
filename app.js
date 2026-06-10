@@ -4531,6 +4531,7 @@ function renderClientesLista() {
               Contactar
             </a>` : ""}
             <button type="button" class="btn-primary cliente-cobrar-btn" data-id="${id}" style="font-size:11.5px;padding:5px 10px">Cobrar</button>
+            <button type="button" class="btn-secondary cliente-ver-btn" data-id="${id}" style="font-size:11.5px;padding:5px 10px;background:#E6F1FB;color:#0C447C;border-color:#B5D4F4">Ver</button>
             <button type="button" class="btn-secondary cliente-editar-btn" data-id="${id}" style="font-size:11.5px;padding:5px 10px">Editar</button>
             <button type="button" class="btn-danger cliente-eliminar-btn" data-id="${id}" style="font-size:11.5px;padding:5px 8px">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -4580,7 +4581,19 @@ function renderClientesLista() {
     </tr>` : "";
 
     return `<tr class="cliente-row" data-id="${id}" data-idx="${idx}" style="cursor:pointer${highlighted ? ";background:var(--bg3)" : ""}">
-      <td style="font-weight:500;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.nombre||"—"}</td>
+      <td class="cliente-nombre-cell" style="font-weight:500;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        ${c.nombre||"—"}
+        <div class="cliente-tooltip">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11.5px">
+            ${c.razonSocial ? `<div><div style="color:var(--text3);font-size:10px">Razón Social</div><div style="color:var(--text1)">${c.razonSocial}</div></div>` : ""}
+            ${c.email ? `<div><div style="color:var(--text3);font-size:10px">Email</div><div style="color:var(--text1)">${c.email}</div></div>` : ""}
+            ${c.cuit ? `<div><div style="color:var(--text3);font-size:10px">CUIT/CUIL</div><div style="color:var(--text1)">${c.cuit}</div></div>` : ""}
+            ${c.dni ? `<div><div style="color:var(--text3);font-size:10px">DNI</div><div style="color:var(--text1)">${c.dni}</div></div>` : ""}
+            ${c.domicilio ? `<div><div style="color:var(--text3);font-size:10px">Domicilio</div><div style="color:var(--text1)">${c.domicilio}</div></div>` : ""}
+            ${c.iva ? `<div><div style="color:var(--text3);font-size:10px">Condición IVA</div><div style="color:var(--text1)">${c.iva}</div></div>` : ""}
+          </div>
+        </div>
+      </td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap">${c.telefono||"—"}</td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap">${c.localidad||"—"}</td>
       <td style="white-space:nowrap"><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text2)">${ivaShort}</span></td>
@@ -4600,10 +4613,12 @@ function toggleClienteExpand(id) {
 
 // ── Delegación en tabla ──
 document.getElementById("clientesLista")?.addEventListener("click", e => {
-  const cobrarBtn  = e.target.closest(".cliente-cobrar-btn");
-  const editarBtn  = e.target.closest(".cliente-editar-btn");
+  const cobrarBtn   = e.target.closest(".cliente-cobrar-btn");
+  const verBtn      = e.target.closest(".cliente-ver-btn");
+  const editarBtn   = e.target.closest(".cliente-editar-btn");
   const eliminarBtn = e.target.closest(".cliente-eliminar-btn");
   if (cobrarBtn)   { clienteActivoId = cobrarBtn.dataset.id; abrirModalCobrar(); return; }
+  if (verBtn)      { abrirModalVerCliente(verBtn.dataset.id); return; }
   if (editarBtn)   { abrirModalCliente(editarBtn.dataset.id); return; }
   if (eliminarBtn) { eliminarCliente(eliminarBtn.dataset.id); return; }
   const row = e.target.closest(".cliente-row");
@@ -4686,6 +4701,74 @@ function cerrarModalCliente() {
   document.getElementById("modalCliente").classList.add("hidden");
 }
 document.getElementById("btnNuevoCliente")?.addEventListener("click",  () => abrirModalCliente());
+
+// Enter para guardar, Escape para cancelar en el modal de cliente
+document.getElementById("modalCliente")?.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && e.target.tagName !== "SELECT") {
+    e.preventDefault();
+    document.getElementById("btnConfirmarCliente")?.click();
+  }
+  if (e.key === "Escape") cerrarModalCliente();
+});
+
+// ── Modal Ver cliente ──
+function abrirModalVerCliente(id) {
+  const c = clientesData[id];
+  if (!c) return;
+  const inic  = getIniciales(c.nombre || "?");
+  const av    = getAvatarColor(c.nombre || "?");
+  const saldo = c.saldo || 0;
+
+  const avatar = document.getElementById("verClienteAvatar");
+  avatar.textContent        = inic;
+  avatar.style.background   = av.bg;
+  avatar.style.color        = av.color;
+  document.getElementById("verClienteNombre").textContent = c.nombre || "—";
+  const saldoEl = document.getElementById("verClienteSaldo");
+  saldoEl.textContent = saldo < 0 ? `Debe ${fmt(Math.abs(saldo))}` : saldo > 0 ? `A favor: ${fmt(saldo)}` : "Sin deuda";
+  saldoEl.style.color = saldo < 0 ? "var(--danger)" : saldo > 0 ? "var(--success)" : "var(--text3)";
+
+  // Guardar id para el botón editar
+  document.getElementById("btnVerClienteEditar").dataset.id = id;
+
+  // Grid de campos
+  const campos = [
+    { label: "Razón Social",    val: c.razonSocial },
+    { label: "WhatsApp",        val: c.telefono },
+    { label: "Email",           val: c.email },
+    { label: "Condición IVA",   val: c.iva },
+    { label: "CUIT / CUIL",     val: c.cuit },
+    { label: "DNI",             val: c.dni },
+    { label: "Domicilio",       val: c.domicilio },
+    { label: "Localidad",       val: c.localidad },
+  ].filter(f => f.val);
+
+  const grid = document.getElementById("verClienteGrid");
+  if (!campos.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:13px;padding:12px">Sin datos adicionales.</div>`;
+  } else {
+    grid.innerHTML = campos.map(f => `
+      <div style="padding:8px 10px;background:var(--surface2);border-radius:var(--radius-sm)">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${f.label}</div>
+        <div style="font-size:13px;color:var(--text1)">${f.val}</div>
+      </div>`).join("");
+  }
+
+  document.getElementById("modalVerCliente").classList.remove("hidden");
+}
+
+function cerrarModalVerCliente() {
+  document.getElementById("modalVerCliente").classList.add("hidden");
+}
+
+document.getElementById("closeModalVerCliente")?.addEventListener("click", cerrarModalVerCliente);
+document.getElementById("btnVerClienteEditar")?.addEventListener("click", e => {
+  cerrarModalVerCliente();
+  abrirModalCliente(e.currentTarget.dataset.id);
+});
+document.getElementById("modalVerCliente")?.addEventListener("keydown", e => {
+  if (e.key === "Escape") cerrarModalVerCliente();
+});
 document.getElementById("closeModalCliente")?.addEventListener("click",  cerrarModalCliente);
 document.getElementById("btnCancelarCliente")?.addEventListener("click", cerrarModalCliente);
 
