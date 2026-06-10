@@ -327,41 +327,43 @@ async function loginOffline(email, password) {
 //  AUTH
 // ============================================================
 async function mostrarApp(email, uid = null) {
+  // Mostrar la app inmediatamente sin esperar Firestore
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("app-wrapper").classList.remove("hidden");
-  const _raw  = email.split("@")[0];
-  const nombre = _raw.charAt(0).toUpperCase() + _raw.slice(1);
 
-  // Cargar datos del usuario desde Firestore
-  let rolCargado = "administrador";
+  const _raw   = email.split("@")[0];
+  const nombre = _raw.charAt(0).toUpperCase() + _raw.slice(1);
+  document.getElementById("user-nombre").textContent = nombre;
+  document.getElementById("user-avatar").textContent = iniciales(nombre);
+
+  // Inicializar Firebase antes de leer el rol
+  initFirebase();
+
+  // Cargar rol desde Firestore (en segundo plano)
   if (uid) {
     try {
       const userDoc = await getDoc(doc(db, "usuarios", uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
-        const nombreFull = data.nombre || nombre;
-        document.getElementById("user-nombre").textContent = nombreFull;
-        document.getElementById("user-avatar").textContent = iniciales(nombreFull);
-        rolCargado = data.rol || "administrador";
+        if (data.nombre) {
+          document.getElementById("user-nombre").textContent = data.nombre;
+          document.getElementById("user-avatar").textContent = iniciales(data.nombre);
+        }
+        aplicarRol(data.rol || "administrador");
       } else {
-        // Usuario nuevo (administrador) — crear su documento
-        document.getElementById("user-nombre").textContent = nombre;
-        document.getElementById("user-avatar").textContent = iniciales(nombre);
+        // Primer login — crear documento como administrador
         await setDoc(doc(db, "usuarios", uid), {
           nombre, email, rol: "administrador", activo: true, creado: new Date().toISOString()
         });
+        aplicarRol("administrador");
       }
     } catch(e) {
-      document.getElementById("user-nombre").textContent = nombre;
-      document.getElementById("user-avatar").textContent = iniciales(nombre);
+      console.warn("No se pudo leer el rol del usuario:", e);
+      aplicarRol("administrador");
     }
   } else {
-    document.getElementById("user-nombre").textContent = nombre;
-    document.getElementById("user-avatar").textContent = iniciales(nombre);
+    aplicarRol("administrador");
   }
-
-  aplicarRol(rolCargado);
-  initFirebase();
 }
 
 onAuthStateChanged(auth, user => {
