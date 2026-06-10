@@ -10,7 +10,7 @@ import {
   writeBatch, enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
-  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ============================================================
@@ -252,6 +252,29 @@ function getNombreUsuario() {
   return document.getElementById("user-nombre")?.textContent || "";
 }
 
+let rolActual = "administrador"; // default hasta que se cargue de Firestore
+
+const VISTAS_EMPLEADO = ["inicio","venta","caja","notas","clientes","gastos","compras","productos","proveedores","soporte"];
+const VISTAS_ADMIN    = ["inicio","venta","caja","notas","clientes","gastos","compras","productos","proveedores","reportes","historial-precios","actividad","usuarios","soporte","backup"];
+
+function aplicarRol(rol) {
+  rolActual = rol || "empleado";
+  const esAdmin = rolActual === "administrador";
+  const vistasPermitidas = esAdmin ? VISTAS_ADMIN : VISTAS_EMPLEADO;
+
+  // Mostrar/ocultar ítems del sidebar
+  document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
+    const view = btn.dataset.view;
+    btn.style.display = vistasPermitidas.includes(view) ? "" : "none";
+  });
+
+  // Si la vista activa no está permitida, ir a Inicio
+  const vistaActiva = document.querySelector(".view.active")?.id?.replace("view-","");
+  if (vistaActiva && !vistasPermitidas.includes(vistaActiva)) {
+    document.querySelector('[data-view="inicio"]')?.click();
+  }
+}
+
 function pct(part, total) {
   if (!total) return "—";
   return Math.round((part / total) * 100) + "% del total";
@@ -303,21 +326,48 @@ async function loginOffline(email, password) {
 // ============================================================
 //  AUTH
 // ============================================================
-function mostrarApp(email) {
+async function mostrarApp(email, uid = null) {
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("app-wrapper").classList.remove("hidden");
-  const _raw  = ADMIN_NOMBRES[email] || email.split("@")[0];
+  const _raw  = email.split("@")[0];
   const nombre = _raw.charAt(0).toUpperCase() + _raw.slice(1);
-  document.getElementById("user-nombre").textContent = nombre;
-  document.getElementById("user-avatar").textContent = iniciales(nombre);
+
+  // Cargar datos del usuario desde Firestore
+  let rolCargado = "administrador";
+  if (uid) {
+    try {
+      const userDoc = await getDoc(doc(db, "usuarios", uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        const nombreFull = data.nombre || nombre;
+        document.getElementById("user-nombre").textContent = nombreFull;
+        document.getElementById("user-avatar").textContent = iniciales(nombreFull);
+        rolCargado = data.rol || "administrador";
+      } else {
+        // Usuario nuevo (administrador) — crear su documento
+        document.getElementById("user-nombre").textContent = nombre;
+        document.getElementById("user-avatar").textContent = iniciales(nombre);
+        await setDoc(doc(db, "usuarios", uid), {
+          nombre, email, rol: "administrador", activo: true, creado: new Date().toISOString()
+        });
+      }
+    } catch(e) {
+      document.getElementById("user-nombre").textContent = nombre;
+      document.getElementById("user-avatar").textContent = iniciales(nombre);
+    }
+  } else {
+    document.getElementById("user-nombre").textContent = nombre;
+    document.getElementById("user-avatar").textContent = iniciales(nombre);
+  }
+
+  aplicarRol(rolCargado);
   initFirebase();
 }
 
 onAuthStateChanged(auth, user => {
   if (user) {
-    mostrarApp(user.email);
+    mostrarApp(user.email, user.uid);
   } else if (!estaOnline) {
-    // Si no hay internet verificar si hay sesión offline guardada
     const cred = getCredencialesOffline();
     if (cred) mostrarApp(cred.email);
     else {
@@ -449,6 +499,9 @@ function initFirebase() {
   // Notas
   initNotasListener();
 
+  // Usuarios
+  initUsuariosListener();
+
   // Config márgenes
   _unsubs.push(onSnapshot(doc(db, "config", "margenes"), snap => {
     if (snap.exists()) Object.assign(margenesConfig, snap.data());
@@ -488,7 +541,7 @@ function rebuildGananciaMap() {
 // ============================================================
 //  NAVEGACIÓN
 // ============================================================
-const VIEWS = { inicio: "Inicio", venta: "Venta", caja: "Caja", notas: "Notas", gastos: "Gastos", compras: "Compras", clientes: "Clientes", productos: "Productos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial", actividad: "Actividad", soporte: "Soporte", backup: "Backup" };
+const VIEWS = { inicio: "Inicio", venta: "Venta", caja: "Caja", notas: "Notas", clientes: "Clientes", gastos: "Gastos", compras: "Compras", productos: "Productos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial", actividad: "Actividad", usuarios: "Usuarios", soporte: "Soporte", backup: "Backup" };
 
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -504,6 +557,7 @@ document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
     // Renders específicos por vista
     if (view === "inicio")            renderInicio();
     if (view === "notas")             renderNotas();
+    if (view === "usuarios")          renderUsuarios();
     if (view === "historial-precios") { renderHistorialPrecios(); renderHistorialVentas(); }
     if (view === "actividad")         renderActividad();
     if (view === "gastos")            renderGastos();
@@ -559,6 +613,7 @@ function renderActividad() {
     gasto:     { cls: "color:#7a3a00;background:#fef0e0", label: "Gasto" },
     cliente:   { cls: "color:#185FA5;background:#E6F1FB", label: "Cliente" },
     compra:    { cls: "color:#0F6E56;background:#E1F5EE", label: "Compra" },
+    usuario:   { cls: "color:#3C3489;background:#EEEDFE", label: "Usuario" },
     backup:    { cls: "color:var(--text2);background:var(--surface2)", label: "Backup" },
   };
   const TIPO_DOT = {
@@ -5938,5 +5993,165 @@ document.addEventListener("keydown", e => {
   if (e.key === "f" && e.ctrlKey && !e.shiftKey) {
     e.preventDefault();
     abrirBusquedaGlobal();
+  }
+});
+
+// ============================================================
+//  USUARIOS Y ROLES
+// ============================================================
+let usuariosData = [];
+
+function renderUsuarios() {
+  const tbody = document.getElementById("usuariosTableBody");
+  const empty = document.getElementById("usuariosEmpty");
+  if (!tbody) return;
+
+  if (!usuariosData.length) {
+    tbody.innerHTML = ""; empty.style.display = "block"; return;
+  }
+  empty.style.display = "none";
+
+  const ROL_BADGE = {
+    administrador: { bg: "#EAF3DE", color: "#3B6D11", label: "Administrador" },
+    empleado:      { bg: "#E6F1FB", color: "#185FA5", label: "Empleado" },
+  };
+  const EST_BADGE = {
+    true:  { bg: "#E6F1FB", color: "#185FA5", label: "Activo" },
+    false: { bg: "#FCEBEB", color: "#A32D2D", label: "Inactivo" },
+  };
+
+  const usuarios = [...usuariosData].sort((a,b) => {
+    if (a.rol === "administrador" && b.rol !== "administrador") return -1;
+    if (b.rol === "administrador" && a.rol !== "administrador") return 1;
+    return (a.nombre||"").localeCompare(b.nombre||"");
+  });
+
+  tbody.innerHTML = usuarios.map(u => {
+    const rolB = ROL_BADGE[u.rol] || ROL_BADGE.empleado;
+    const estB = EST_BADGE[String(u.activo !== false)];
+    const inic = iniciales(u.nombre || u.email || "?");
+    const esAdmin = u.rol === "administrador" && auth.currentUser?.uid === u._id;
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="width:30px;height:30px;border-radius:50%;background:#EAF3DE;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#3B6D11;flex-shrink:0">${inic}</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text1)">${u.nombre || "—"}</div>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--text2)">${u.email || "—"}</td>
+      <td style="text-align:center"><span style="font-size:11px;font-weight:500;padding:2px 10px;border-radius:10px;background:${rolB.bg};color:${rolB.color}">${rolB.label}</span></td>
+      <td style="text-align:center"><span style="font-size:11px;font-weight:500;padding:2px 10px;border-radius:10px;background:${estB.bg};color:${estB.color}">${estB.label}</span></td>
+      <td style="text-align:center">
+        ${esAdmin ? "<span style='font-size:11px;color:var(--text3)'>—</span>" : `
+          <div style="display:flex;gap:6px;justify-content:center">
+            <button type="button" class="usr-edit-btn" data-uid="${u._id}" style="background:none;border:none;cursor:pointer;padding:3px;color:var(--text3)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button type="button" class="usr-toggle-btn" data-uid="${u._id}" data-activo="${u.activo !== false}" style="background:none;border:none;cursor:pointer;padding:3px;color:var(--text3)" title="${u.activo !== false ? 'Desactivar' : 'Activar'}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${u.activo !== false ? 'M18.36 6.64A9 9 0 0 1 20.77 15' : 'M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z'}"/>${u.activo !== false ? '<path d="M12 22a10 10 0 0 1-7.07-2.93"/>' : ''}</svg>
+            </button>
+          </div>`}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+// ── Firestore listener ──
+function initUsuariosListener() {
+  _unsubs.push(onSnapshot(collection(db, "usuarios"), snap => {
+    usuariosData = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+    if (document.getElementById("view-usuarios")?.classList.contains("active")) renderUsuarios();
+  }));
+}
+
+// ── Modal nuevo/editar usuario ──
+function abrirModalUsuario(uid = null) {
+  const u = uid ? usuariosData.find(x => x._id === uid) : null;
+  document.getElementById("usuarioEditUid").value = uid || "";
+  document.getElementById("modalUsuarioTitulo").textContent = uid ? "Editar usuario" : "Nuevo usuario";
+  document.getElementById("usuarioNombreInput").value = u?.nombre || "";
+  document.getElementById("usuarioEmailInput").value  = u?.email  || "";
+  document.getElementById("usuarioPassInput").value   = "";
+  document.getElementById("usuarioRolSelect").value   = u?.rol || "empleado";
+  document.getElementById("btnConfirmarUsuario").textContent = uid ? "Guardar cambios" : "Crear usuario";
+  // Al editar, ocultar email y pass
+  document.getElementById("usuarioEmailWrap").style.display = uid ? "none" : "block";
+  document.getElementById("usuarioPassWrap").style.display  = uid ? "none" : "block";
+  document.getElementById("modalUsuario").classList.remove("hidden");
+  setTimeout(() => document.getElementById("usuarioNombreInput").focus(), 80);
+}
+
+function cerrarModalUsuario() {
+  document.getElementById("modalUsuario").classList.add("hidden");
+}
+
+document.getElementById("btnNuevoUsuario")?.addEventListener("click", () => abrirModalUsuario());
+document.getElementById("closeModalUsuario")?.addEventListener("click", cerrarModalUsuario);
+document.getElementById("btnCancelarUsuario")?.addEventListener("click", cerrarModalUsuario);
+
+document.getElementById("btnConfirmarUsuario")?.addEventListener("click", async () => {
+  const nombre = document.getElementById("usuarioNombreInput").value.trim();
+  const email  = document.getElementById("usuarioEmailInput").value.trim();
+  const pass   = document.getElementById("usuarioPassInput").value;
+  const rol    = document.getElementById("usuarioRolSelect").value;
+  const uid    = document.getElementById("usuarioEditUid").value;
+
+  if (!nombre) { showToast("Ingresá un nombre.", "error"); return; }
+
+  const btn  = document.getElementById("btnConfirmarUsuario");
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "Procesando…";
+
+  try {
+    if (uid) {
+      // Solo editar nombre y rol
+      await updateDoc(doc(db, "usuarios", uid), { nombre, rol });
+      showToast("Usuario actualizado ✓", "success");
+    } else {
+      // Crear nuevo usuario con segunda instancia de Firebase
+      if (!email) { showToast("Ingresá un email.", "error"); return; }
+      if (pass.length < 6) { showToast("La contraseña debe tener al menos 6 caracteres.", "error"); return; }
+
+      const { initializeApp: initApp2 } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+      const { getAuth: getAuth2, createUserWithEmailAndPassword: createUser } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+
+      const app2  = initApp2(firebaseConfig, "app2-" + Date.now());
+      const auth2 = getAuth2(app2);
+      const cred  = await createUser(auth2, email, pass);
+      const newUid = cred.user.uid;
+
+      // Guardar en Firestore
+      await setDoc(doc(db, "usuarios", newUid), {
+        nombre, email, rol, activo: true, creado: new Date().toISOString()
+      });
+
+      // Cerrar la segunda instancia
+      await auth2.signOut();
+
+      registrarLog("usuario", `Usuario creado — ${nombre} (${rol})`);
+      showToast(`Usuario creado ✓ — ${nombre}`, "success");
+    }
+    cerrarModalUsuario();
+  } catch(err) {
+    const msg = err.code === "auth/email-already-in-use" ? "Ese email ya está en uso." :
+                err.code === "auth/invalid-email" ? "Email inválido." : err.message;
+    showToast("Error: " + msg, "error");
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+});
+
+// Delegación en tabla de usuarios
+document.getElementById("usuariosTableBody")?.addEventListener("click", async e => {
+  const editBtn   = e.target.closest(".usr-edit-btn");
+  const toggleBtn = e.target.closest(".usr-toggle-btn");
+
+  if (editBtn) { abrirModalUsuario(editBtn.dataset.uid); return; }
+
+  if (toggleBtn) {
+    const uid    = toggleBtn.dataset.uid;
+    const activo = toggleBtn.dataset.activo === "true";
+    await updateDoc(doc(db, "usuarios", uid), { activo: !activo });
+    showToast(`Usuario ${!activo ? "activado" : "desactivado"} ✓`, "success");
   }
 });
