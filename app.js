@@ -2371,9 +2371,9 @@ function renderProductosTabla() {
 
     return `<tr data-id="${p._id}" style="${rowStyle}">
       <td style="width:32px;text-align:center"><input type="checkbox" class="prod-check" data-id="${p._id}" style="cursor:pointer;width:14px;height:14px"></td>
-      <td><span class="badge ${badgeClass(p.proveedor)}">${p.proveedor || "—"}</span></td>
-      <td class="id-cell" style="text-align:center">${p.id || "—"}</td>
-      <td class="cod-cell">${p.cod || "—"}</td>
+      <td style="overflow:hidden"><span class="badge ${badgeClass(p.proveedor)}" style="overflow:hidden;text-overflow:ellipsis;max-width:100%;display:inline-block">${p.proveedor || "—"}</span></td>
+      <td class="id-cell" style="text-align:center;font-size:11px">${p.id || "—"}</td>
+      <td class="cod-cell" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.cod || "—"}</td>
       <td style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap${inactivo ? ";color:var(--text3)" : ""}" title="${p.desc || ""}">${p.desc || "—"}${inactivo ? ' <span style="font-size:10px;color:var(--text3)">(inactivo)</span>' : ""}</td>
       <td style="font-size:12px;color:var(--text2)">${p.rubro || "—"}</td>
       <td class="num" style="font-weight:600">${fmt(venta)}</td>
