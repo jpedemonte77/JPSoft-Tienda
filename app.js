@@ -427,12 +427,6 @@ document.getElementById("login-form").addEventListener("submit", async e => {
   }
 });
 
-document.getElementById("btn-logout").addEventListener("click", async () => {
-  const nombre = document.getElementById("user-nombre").textContent || "usuario";
-  if (!confirm(`¿Cerrar sesión como ${nombre}?`)) return;
-  await signOut(auth);
-});
-
 // ============================================================
 //  FIREBASE: ESCUCHAR CAMBIOS EN TIEMPO REAL (Firestore)
 // ============================================================
