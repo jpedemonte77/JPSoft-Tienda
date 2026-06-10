@@ -6454,13 +6454,33 @@ document.getElementById("btnConfirmarVenta")?.addEventListener("click", async ()
   if (el) el.textContent = fmtNroVenta(nro);
 }, true); // capture = true para que corra antes del listener principal
 
-// ── Cotización del dólar ──
+// ── Cotización del dólar — carga automática desde dolarapi.com ──
 const cotizInput = document.getElementById("cotizacionDolar");
 
-// Cargar del localStorage
+// Cargar del localStorage como valor inicial
 const _cotizGuardada = localStorage.getItem("jpsoft_cotiz_dolar");
 if (cotizInput && _cotizGuardada) cotizInput.value = _cotizGuardada;
 
+// Guardar al editar manualmente
 cotizInput?.addEventListener("change", () => {
   localStorage.setItem("jpsoft_cotiz_dolar", cotizInput.value);
 });
+
+// Cargar cotización en tiempo real desde dolarapi.com
+async function cargarCotizacionDolar() {
+  try {
+    const res  = await fetch("https://dolarapi.com/v1/dolares/oficial");
+    const data = await res.json();
+    const venta = data?.venta;
+    if (venta && cotizInput) {
+      cotizInput.value = Math.round(venta);
+      localStorage.setItem("jpsoft_cotiz_dolar", Math.round(venta));
+    }
+  } catch(e) {
+    // Si falla la API usa el valor guardado en localStorage
+    console.warn("No se pudo cargar la cotización del dólar:", e);
+  }
+}
+
+// Cargar al iniciar (con un pequeño delay para no bloquear el boot)
+setTimeout(cargarCotizacionDolar, 2000);
