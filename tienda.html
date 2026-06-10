@@ -59,6 +59,10 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
         Caja
       </button>
+      <button class="nav-item" data-view="notas">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Notas
+      </button>
       <button class="nav-item" data-view="clientes">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Clientes
@@ -207,9 +211,36 @@
 
         </div>
       </div>
+
+      <!-- Bloque notas en Dashboard -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:12px">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;font-weight:600;color:var(--text1)">Notas y recordatorios</div>
+          <button type="button" class="btn-secondary" style="font-size:11.5px;padding:4px 10px" onclick="document.querySelector('[data-view=\'notas\']').click()">Ver todas →</button>
+        </div>
+        <div id="inicioNotasWrap">
+          <div class="empty-row">Sin notas pendientes.</div>
+        </div>
+      </div>
     </div>
 
         <!-- ══════════════════════════════
+         VISTA: NOTAS
+    ══════════════════════════════ -->
+    <div class="view" id="view-notas">
+      <div class="view-header">
+        <div></div>
+        <button class="btn-primary" id="btnNuevaNota">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nueva nota
+        </button>
+      </div>
+      <div id="notasGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+        <div class="empty-row" style="grid-column:1/-1">No hay notas registradas.</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
          VISTA: VENTA
     ══════════════════════════════ -->
     <div class="view" id="view-venta" style="padding:0;flex-direction:row;overflow:hidden">
@@ -1587,6 +1618,33 @@
     <div class="modal-footer">
       <button class="btn-secondary" id="btnCancelarCompra">Cancelar</button>
       <button class="btn-primary" id="btnConfirmarCompra">Registrar compra</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: NUEVA / EDITAR NOTA
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalNota">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title" id="modalNotaTitulo">Nueva nota</span>
+      <button class="modal-close" id="closeModalNota">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="notaEditId" />
+      <div class="form-group">
+        <label class="form-label">Nota</label>
+        <textarea class="form-input" id="notaTextoInput" rows="3" placeholder="Escribí tu nota o recordatorio…" maxlength="300" style="resize:none;font-family:inherit"></textarea>
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">Fecha de recordatorio <span style="font-weight:400;color:var(--text3)">(opcional)</span></label>
+        <input type="date" class="form-input" id="notaFechaInput" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="btnCancelarNota">Cancelar</button>
+      <button class="btn-primary" id="btnConfirmarNota">Guardar nota</button>
     </div>
   </div>
 </div>
