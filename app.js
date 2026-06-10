@@ -3612,23 +3612,6 @@ function exportarExcel(hojas, filename) {
 // ============================================================
 //  VISTA: USUARIOS
 // ============================================================
-function renderUsuarios() {
-  const tbody = document.getElementById("usuariosTabla");
-  if (!tbody) return;
-  tbody.innerHTML = TODOS_USUARIOS.map(u => {
-    const iniciales_ = (u.nombre || "?").charAt(0).toUpperCase();
-    return `<tr>
-      <td>
-        <div class="user-avatar" style="margin:0 auto">${iniciales_}</div>
-      </td>
-      <td style="font-weight:500">${u.nombre}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${u.email}</td>
-      <td><span class="badge badge-neutral">Administrador</span></td>
-      <td>${u.admin ? '<span class="badge badge-success">Sí</span>' : '<span class="badge badge-neutral">No</span>'}</td>
-    </tr>`;
-  }).join("");
-}
-
 // ============================================================
 //  VISTA: BACKUP
 // ============================================================
