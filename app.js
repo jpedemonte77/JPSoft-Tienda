@@ -3063,8 +3063,6 @@ document.getElementById("proveedoresGrid")?.addEventListener("click", e => {
   if (row) window._editarProveedor(row.dataset.id);
 });
 
-}
-
 window._eliminarProveedor = function(id, nombre, cantProd) {
   const aviso = cantProd > 0
     ? `¿Eliminar el proveedor "${nombre}"?
