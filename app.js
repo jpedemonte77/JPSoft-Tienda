@@ -7695,10 +7695,20 @@ document.getElementById("btnNuevoPresupuestoDesdeClientes")?.addEventListener("c
 document.getElementById("closeModalPresupuesto")?.addEventListener("click", cerrarModalPresupuesto);
 document.getElementById("btnCancelarPresupuesto")?.addEventListener("click", cerrarModalPresupuesto);
 document.getElementById("modalPresupuesto")?.addEventListener("click", e => { if (e.target===e.currentTarget) cerrarModalPresupuesto(); });
-document.getElementById("modalPresupuesto")?.addEventListener("keydown", e => {
-  if (e.key === "Escape") { e.preventDefault(); cerrarModalPresupuesto(); }
-  if (e.key === "Enter" && e.target.tagName !== "SELECT" && e.target.tagName !== "TEXTAREA") {
-    e.preventDefault();
+
+// Teclado: escuchar en document para capturar sin importar dónde esté el foco
+document.addEventListener("keydown", e => {
+  const modal = document.getElementById("modalPresupuesto");
+  if (!modal || modal.classList.contains("hidden")) return;
+  if (e.key === "Escape") {
+    e.preventDefault(); e.stopPropagation();
+    cerrarModalPresupuesto();
+  }
+  if (e.key === "Enter") {
+    // No interferir con select abierto ni textarea
+    if (e.target.tagName === "TEXTAREA") return;
+    if (e.target.tagName === "SELECT") return;
+    e.preventDefault(); e.stopPropagation();
     document.getElementById("btnGuardarPresupuesto")?.click();
   }
 });
