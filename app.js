@@ -2463,11 +2463,13 @@ function renderProductosTabla() {
         <span style="font-size:12px">${inactivo ? "❌" : "✅"}</span>
       </td>
       <td>
-        <div style="display:flex;gap:5px;justify-content:flex-end">
-          <button class="btn-secondary" style="font-size:11px;padding:4px 8px" onclick="window._verVentasProducto('${p._id}','${(p.desc||'').replace(/'/g,'&#39;')}')">Ventas</button>
-          <button class="btn-secondary" style="font-size:11px;padding:4px 8px" onclick="window._verComprasProducto('${p._id}','${(p.desc||'').replace(/'/g,'&#39;')}')">Compras</button>
-          <button class="btn-secondary" style="font-size:11px;padding:4px 8px" data-edit onclick="window._editarProducto('${p._id}')">Editar</button>
-          <button class="btn-danger" style="font-size:11px;padding:4px 7px" onclick="window._eliminarProducto('${p._id}','${(p.desc||'').replace(/'/g,'&#39;')}')">🗑</button>
+        <div style="display:flex;gap:4px;justify-content:flex-end">
+          <button class="btn-secondary" style="font-size:11px;padding:4px 8px;font-weight:600" title="Ver ventas" onclick="window._verVentasProducto('${p._id}','${(p.desc||'').replace(/'/g,'&#39;')}')">V</button>
+          <button class="btn-secondary" style="font-size:11px;padding:4px 8px;font-weight:600" title="Ver compras" onclick="window._verComprasProducto('${p._id}','${(p.desc||'').replace(/'/g,'&#39;')}')">C</button>
+          <button class="btn-secondary" style="font-size:11px;padding:4px 8px" title="Editar producto" data-edit onclick="window._editarProducto('${p._id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-danger" style="font-size:11px;padding:4px 7px" title="Eliminar producto" onclick="window._eliminarProducto('${p._id}','${(p.desc||'').replace(/'/g,'&#39;')}')">🗑</button>
         </div>
       </td>
     </tr>`;
