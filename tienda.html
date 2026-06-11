@@ -67,6 +67,10 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Clientes
       </button>
+      <button class="nav-item" data-view="presupuestos">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Presupuestos
+      </button>
       <button class="nav-item" data-view="compras">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
         Compras
@@ -528,6 +532,53 @@
     <!-- ══════════════════════════════
          VISTA: COMPRAS
     ══════════════════════════════ -->
+    <!-- ══════════════════════════════
+         VISTA: PRESUPUESTOS
+    ══════════════════════════════ -->
+    <div class="view" id="view-presupuestos">
+      <div class="view-header">
+        <div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-primary" id="btnNuevoPresupuesto">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo presupuesto
+          </button>
+        </div>
+      </div>
+
+      <!-- Buscador -->
+      <div style="position:relative;margin-bottom:1rem">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" class="search-input" id="presupuestosSearch" placeholder="Buscar por cliente o número…" style="padding-left:32px" />
+      </div>
+
+      <!-- Tabla -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <table style="table-layout:fixed;width:100%">
+          <colgroup>
+            <col style="width:80px">
+            <col style="width:90px">
+            <col style="width:160px">
+            <col>
+            <col style="width:90px">
+            <col style="width:180px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Nº</th>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Productos</th>
+              <th class="num">Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="presupuestosTableBody"></tbody>
+        </table>
+        <div class="empty-row" id="presupuestosEmpty">No hay presupuestos registrados.</div>
+      </div>
+    </div>
+
     <div class="view" id="view-compras">
       <div class="view-header">
         <div></div>
@@ -612,6 +663,10 @@
           <button class="btn-secondary" id="btnImprimirClientesPDF">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             Imprimir
+          </button>
+          <button class="btn-secondary" id="btnNuevoPresupuestoDesdeClientes">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            Nuevo presupuesto
           </button>
         </div>
       </div>
@@ -1921,6 +1976,63 @@
     <div class="modal-footer" style="padding:8px 16px">
       <button class="btn-secondary" id="btnCancelarCompra">Cancelar</button>
       <button class="btn-primary" id="btnConfirmarCompra">Registrar compra</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: PRESUPUESTO
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalPresupuesto">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title" id="modalPresupuestoTitulo">Nuevo presupuesto</span>
+      <button class="modal-close" id="closeModalPresupuesto">✕</button>
+    </div>
+    <div class="modal-body" style="padding:10px 16px;display:flex;flex-direction:column;gap:8px">
+
+      <!-- Cliente -->
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label" style="margin-bottom:3px">Cliente <span style="color:var(--danger)">*</span></label>
+        <div style="display:flex;gap:6px">
+          <select class="form-select" id="presupClienteSelect" style="flex:1;font-size:13px">
+            <option value="">Seleccioná un cliente…</option>
+          </select>
+          <button type="button" class="btn-secondary" id="btnNuevoClientePresup" style="font-size:12px;padding:5px 10px;white-space:nowrap">+ Nuevo</button>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Productos</div>
+        <div style="display:grid;grid-template-columns:1fr 70px 100px 28px;gap:6px;padding-bottom:4px">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Producto</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;text-align:center">Cant.</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Precio unit.</div>
+          <div></div>
+        </div>
+        <div id="presupItems" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:6px"></div>
+        <button type="button" class="btn-secondary" id="btnAgregarItemPresup" style="font-size:12px;width:100%">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar producto
+        </button>
+      </div>
+
+      <!-- Total -->
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-radius:var(--radius-sm);padding:8px 13px">
+        <span style="font-size:13px;font-weight:500;color:var(--text2)">Total</span>
+        <span id="presupTotalDisplay" style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text1)">$0</span>
+      </div>
+
+      <!-- Observaciones -->
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label" style="margin-bottom:3px">Observaciones <span style="font-weight:400;color:var(--text3)">(opcional)</span></label>
+        <input type="text" class="form-input" id="presupObs" placeholder="Ej: válido por 7 días, incluye instalación…" maxlength="200" />
+      </div>
+    </div>
+    <div class="modal-footer" style="padding:8px 16px">
+      <button class="btn-secondary" id="btnCancelarPresupuesto">Cancelar</button>
+      <button class="btn-primary" id="btnGuardarPresupuesto">Guardar presupuesto</button>
     </div>
   </div>
 </div>
