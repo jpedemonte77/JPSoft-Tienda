@@ -2502,7 +2502,7 @@ async function confirmarActSeleccionados() {
   btn.disabled = true; btn.textContent = "Aplicando…";
 
   try {
-    const ahora = nowFecha(); const hora = nowHora();
+    const ahora = todayKey(); const hora = nowHora();
     for (const cb of checks) {
       const p = allProducts.find(x => x._id === cb.dataset.id);
       if (!p) continue;
