@@ -688,7 +688,11 @@
       <!-- Barra de acciones selección múltiple -->
       <div id="prodSeleccionBar" style="display:none;padding:8px 14px;background:var(--info-bg);border:1px solid var(--info-border);border-radius:var(--radius);margin-bottom:8px;align-items:center;gap:12px">
         <span id="prodSeleccionCount" style="font-size:13px;font-weight:500;color:var(--info)">0 seleccionados</span>
-        <button class="btn-danger" id="btnEliminarSeleccionados" style="font-size:12px;padding:5px 12px">🗑 Eliminar seleccionados</button>
+        <button class="btn-secondary" id="btnActualizarSeleccionados" style="font-size:12px;padding:5px 12px;background:#EEEDFE;color:#3C3489;border-color:#C5C2F5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Actualizar precios
+        </button>
+        <button class="btn-danger" id="btnEliminarSeleccionados" style="font-size:12px;padding:5px 12px">🗑 Eliminar</button>
         <button class="btn-secondary" id="btnDeseleccionarTodos" style="font-size:12px;padding:5px 12px">Cancelar</button>
       </div>
       <div class="productos-table-wrap">
@@ -1893,6 +1897,39 @@
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" id="closeModalVentasProducto2">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: ACTUALIZAR PRECIOS SELECCIONADOS
+══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalActualizarSeleccionados">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">Actualizar precios</span>
+      <button class="modal-close" id="closeModalActSeleccionados">✕</button>
+    </div>
+    <div class="modal-body" style="padding:12px 16px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px">
+        Aplicar a <strong id="actSelCount">0</strong> productos seleccionados
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button type="button" class="act-sel-tipo" data-tipo="aumento" style="flex:1;padding:8px;border-radius:var(--radius-sm);border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:13px;cursor:pointer;font-family:inherit">▲ Aumento</button>
+        <button type="button" class="act-sel-tipo" data-tipo="descuento" style="flex:1;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit">▼ Descuento</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <input type="number" id="actSelPct" min="0" max="999" step="0.5" placeholder="0"
+          style="width:100px;font-size:28px;font-weight:600;font-family:'DM Mono',monospace;text-align:center;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px;background:var(--surface)" />
+        <span style="font-size:24px;color:var(--text2)">%</span>
+        <div style="flex:1;font-size:12px;color:var(--text3)">sobre el precio de lista actual de cada producto</div>
+      </div>
+      <!-- Preview -->
+      <div id="actSelPreview" style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--text2);max-height:160px;overflow-y:auto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="closeModalActSeleccionados2">Cancelar</button>
+      <button class="btn-primary" id="btnConfirmarActSeleccionados">Aplicar</button>
     </div>
   </div>
 </div>
