@@ -7084,3 +7084,77 @@ document.getElementById("modalVentasProducto")?.addEventListener("click", e => {
 });
 document.getElementById("closeModalVentasProducto")?.addEventListener("click",  () => document.getElementById("modalVentasProducto").classList.add("hidden"));
 document.getElementById("closeModalVentasProducto2")?.addEventListener("click", () => document.getElementById("modalVentasProducto").classList.add("hidden"));
+
+// ============================================================
+//  MODALES ARRASTRABLES — aplica a todos los modales del sistema
+// ============================================================
+function hacerArrastrable(overlay) {
+  const modal = overlay.querySelector(".modal");
+  if (!modal) return;
+  const header = modal.querySelector(".modal-header");
+  if (!header) return;
+
+  header.style.cursor = "grab";
+
+  let isDragging = false, startX, startY, origLeft, origTop;
+
+  header.addEventListener("mousedown", e => {
+    if (e.target.closest("button")) return; // no arrastrar si click en botón
+    isDragging = true;
+    header.style.cursor = "grabbing";
+
+    // Posicionar el modal absolutamente si no lo está
+    const rect = modal.getBoundingClientRect();
+    modal.style.position   = "fixed";
+    modal.style.margin     = "0";
+    modal.style.left       = rect.left + "px";
+    modal.style.top        = rect.top  + "px";
+    modal.style.transform  = "none";
+
+    startX   = e.clientX;
+    startY   = e.clientY;
+    origLeft = rect.left;
+    origTop  = rect.top;
+
+    e.preventDefault();
+  });
+
+  document.addEventListener("mousemove", e => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    // Límites para que no salga de la pantalla
+    const newLeft = Math.max(0, Math.min(window.innerWidth  - modal.offsetWidth,  origLeft + dx));
+    const newTop  = Math.max(0, Math.min(window.innerHeight - modal.offsetHeight, origTop  + dy));
+
+    modal.style.left = newLeft + "px";
+    modal.style.top  = newTop  + "px";
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (!isDragging) return;
+    isDragging = false;
+    header.style.cursor = "grab";
+  });
+}
+
+// Aplicar a todos los modales existentes
+document.querySelectorAll(".modal-overlay").forEach(hacerArrastrable);
+
+// Resetear posición al cerrar (para que la próxima vez abra centrado)
+document.querySelectorAll(".modal-overlay").forEach(overlay => {
+  const observer = new MutationObserver(() => {
+    if (overlay.classList.contains("hidden")) {
+      const modal = overlay.querySelector(".modal");
+      if (modal) {
+        modal.style.position  = "";
+        modal.style.margin    = "";
+        modal.style.left      = "";
+        modal.style.top       = "";
+        modal.style.transform = "";
+      }
+    }
+  });
+  observer.observe(overlay, { attributes: true, attributeFilter: ["class"] });
+});
