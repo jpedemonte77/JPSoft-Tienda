@@ -2525,6 +2525,8 @@ async function confirmarActSeleccionados() {
 document.getElementById("btnConfirmarActSeleccionados")?.addEventListener("click", confirmarActSeleccionados);
 document.getElementById("closeModalActSeleccionados")?.addEventListener("click",  () => document.getElementById("modalActualizarSeleccionados").classList.add("hidden"));
 document.getElementById("closeModalActSeleccionados2")?.addEventListener("click", () => document.getElementById("modalActualizarSeleccionados").classList.add("hidden"));
+
+document.getElementById("btnEliminarSeleccionados")?.addEventListener("click", () => {
   const checks = [...document.querySelectorAll(".prod-check:checked")];
   if (!checks.length) return;
   if (!confirm(`¿Eliminar ${checks.length} producto${checks.length > 1 ? "s" : ""}?
