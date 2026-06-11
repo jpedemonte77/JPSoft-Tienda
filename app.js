@@ -2436,7 +2436,95 @@ function actualizarBarraSeleccion() {
     if (checkAll) { checkAll.checked = false; checkAll.indeterminate = false; }
   }
 }
-document.getElementById("btnEliminarSeleccionados")?.addEventListener("click", () => {
+document.getElementById("btnActualizarSeleccionados")?.addEventListener("click", () => {
+  const checks = [...document.querySelectorAll(".prod-check:checked")];
+  if (!checks.length) return;
+  document.getElementById("actSelCount").textContent = checks.length;
+  document.getElementById("actSelPct").value = "";
+  document.getElementById("actSelPreview").innerHTML = "";
+  // Resetear tipo
+  document.querySelectorAll(".act-sel-tipo").forEach(b => {
+    const active = b.dataset.tipo === "aumento";
+    b.style.background   = active ? "var(--accent)" : "var(--surface2)";
+    b.style.color        = active ? "#fff" : "var(--text2)";
+    b.style.border       = active ? "2px solid var(--accent)" : "1px solid var(--border2)";
+  });
+  window._actSelTipo = "aumento";
+  document.getElementById("modalActualizarSeleccionados").classList.remove("hidden");
+});
+
+document.getElementById("modalActualizarSeleccionados")?.addEventListener("click", e => {
+  const chip = e.target.closest(".act-sel-tipo");
+  if (chip) {
+    window._actSelTipo = chip.dataset.tipo;
+    document.querySelectorAll(".act-sel-tipo").forEach(b => {
+      const active = b.dataset.tipo === window._actSelTipo;
+      b.style.background = active ? "var(--accent)" : "var(--surface2)";
+      b.style.color      = active ? "#fff" : "var(--text2)";
+      b.style.border     = active ? "2px solid var(--accent)" : "1px solid var(--border2)";
+    });
+    renderActSelPreview();
+  }
+});
+
+document.getElementById("actSelPct")?.addEventListener("input", renderActSelPreview);
+
+function renderActSelPreview() {
+  const pct   = parseFloat(document.getElementById("actSelPct")?.value) || 0;
+  const tipo  = window._actSelTipo || "aumento";
+  const checks = [...document.querySelectorAll(".prod-check:checked")];
+  const preview = document.getElementById("actSelPreview");
+  if (!pct || !checks.length) { preview.innerHTML = ""; return; }
+
+  const factor = tipo === "aumento" ? (1 + pct / 100) : (1 - pct / 100);
+  const rows = checks.slice(0, 8).map(cb => {
+    const p = allProducts.find(x => x._id === cb.dataset.id);
+    if (!p) return "";
+    const nuevo = Math.round(p.lista * factor);
+    return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${p.desc}</span>
+      <span><span style="color:var(--text3)">${fmt(p.lista)}</span> → <strong>${fmt(nuevo)}</strong></span>
+    </div>`;
+  }).join("");
+  const mas = checks.length > 8 ? `<div style="color:var(--text3);padding-top:4px">...y ${checks.length - 8} más</div>` : "";
+  preview.innerHTML = rows + mas;
+}
+
+async function confirmarActSeleccionados() {
+  const pct    = parseFloat(document.getElementById("actSelPct")?.value);
+  const tipo   = window._actSelTipo || "aumento";
+  const checks = [...document.querySelectorAll(".prod-check:checked")];
+  if (!pct || pct <= 0) { showToast("Ingresá un porcentaje válido.", "error"); return; }
+  if (!checks.length)   { showToast("No hay productos seleccionados.", "error"); return; }
+
+  const factor = tipo === "aumento" ? (1 + pct / 100) : (1 - pct / 100);
+  const btn    = document.getElementById("btnConfirmarActSeleccionados");
+  btn.disabled = true; btn.textContent = "Aplicando…";
+
+  const ahora = nowFecha(); const hora = nowHora();
+  for (const cb of checks) {
+    const p = allProducts.find(x => x._id === cb.dataset.id);
+    if (!p) continue;
+    const nuevo = Math.round(p.lista * factor);
+    const histId = `${ahora}_${hora.replace(":","")}`;
+    await updateDoc(doc(db, "productos", p._id), {
+      lista: nuevo,
+      [`historialPrecios.${histId}`]: { precioAnterior: p.lista, precioNuevo: nuevo, fecha: ahora, hora, admin: getNombreUsuario() }
+    });
+  }
+
+  registrarLog("productos", `Precios actualizados — ${checks.length} productos · ${tipo} ${pct}%`);
+  showToast(`Precios actualizados ✓ — ${checks.length} productos`, "success");
+  document.getElementById("modalActualizarSeleccionados").classList.add("hidden");
+  document.querySelectorAll(".prod-check").forEach(cb => cb.checked = false);
+  document.getElementById("prodCheckAll").checked = false;
+  actualizarBarraSeleccion();
+  btn.disabled = false; btn.textContent = "Aplicar";
+}
+
+document.getElementById("btnConfirmarActSeleccionados")?.addEventListener("click", confirmarActSeleccionados);
+document.getElementById("closeModalActSeleccionados")?.addEventListener("click",  () => document.getElementById("modalActualizarSeleccionados").classList.add("hidden"));
+document.getElementById("closeModalActSeleccionados2")?.addEventListener("click", () => document.getElementById("modalActualizarSeleccionados").classList.add("hidden"));
   const checks = [...document.querySelectorAll(".prod-check:checked")];
   if (!checks.length) return;
   if (!confirm(`¿Eliminar ${checks.length} producto${checks.length > 1 ? "s" : ""}?
@@ -3648,44 +3736,52 @@ document.getElementById("btnExportarListaExcel")?.addEventListener("click", () =
 document.getElementById("btnImprimirListaPrecios")?.addEventListener("click", () => {
   if (!allProducts.length) { showToast("No hay productos cargados.", "warning"); return; }
 
-  const porProv = {};
-  allProducts
-    .sort((a, b) => (a.desc || "").localeCompare(b.desc || ""))
-    .forEach(p => {
-      const prov = p.proveedor || "Sin proveedor";
-      if (!porProv[prov]) porProv[prov] = [];
-      porProv[prov].push(p);
-    });
+  const provFilt  = document.getElementById("prodFilterProv")?.value  || "";
+  const rubroFilt = document.getElementById("prodFilterRubro")?.value || "";
 
-  const now = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const totalProds = allProducts.length;
-  const totalProvs = Object.keys(porProv).length;
+  const fuente = allProducts
+    .filter(p => {
+      if (provFilt  && p.proveedor !== provFilt)  return false;
+      if (rubroFilt && (p.rubro || "") !== rubroFilt) return false;
+      return true;
+    })
+    .sort((a, b) => (a.desc || "").localeCompare(b.desc || ""));
+
+  const porProv = {};
+  fuente.forEach(p => {
+    const prov = p.proveedor || "Sin proveedor";
+    if (!porProv[prov]) porProv[prov] = [];
+    porProv[prov].push(p);
+  });
+
+  const now = new Date().toLocaleDateString("es-AR", { day:"2-digit", month:"2-digit", year:"numeric" });
 
   const seccionesHtml = Object.entries(porProv)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([prov, prods]) => {
       const filas = prods.map(p => {
         const venta = Math.round(getPrecioVenta(p));
-        const stockVal = (p.stock !== undefined && p.stock !== null && p.stock !== "") ? p.stock : "—";
         return `<tr>
-          <td class="cod">${p.cod || "—"}</td>
+          <td class="cod" style="width:45px">${p.id || "—"}</td>
+          <td class="cod" style="width:110px">${p.cod || "—"}</td>
           <td>${p.desc || "—"}</td>
-          <td class="num">${fmt(p.lista || 0)}</td>
-          <td class="venta">${fmt(venta)}</td>
-          <td class="stock">${stockVal}</td>
+          <td style="width:90px">${p.rubro || "—"}</td>
+          <td class="num" style="width:75px">${fmt(p.lista || 0)}</td>
+          <td class="venta" style="width:75px">${fmt(venta)}</td>
         </tr>`;
       }).join("");
 
       return `<div class="p-section">
-        <div class="p-section-header">${prov} &nbsp;(${prods.length})</div>
+        <div class="p-section-header">${prov} &nbsp;(${prods.length} productos)</div>
         <table>
           <thead>
             <tr>
+              <th style="width:45px">ID</th>
               <th style="width:110px">Código</th>
               <th>Producto</th>
+              <th style="width:90px">Rubro</th>
               <th class="num" style="width:75px">P. Lista</th>
               <th class="num" style="width:75px">P. Venta</th>
-              <th class="num" style="width:50px">Stock</th>
             </tr>
           </thead>
           <tbody>${filas}</tbody>
@@ -3696,7 +3792,7 @@ document.getElementById("btnImprimirListaPrecios")?.addEventListener("click", ()
   const printArea = document.getElementById("printArea");
   printArea.innerHTML = `
     <div class="p-brand">JPSoft | Tienda</div>
-    <div class="p-sub">Lista de precios — ${now} &nbsp;·&nbsp; ${totalProds} productos &nbsp;·&nbsp; ${totalProvs} proveedores</div>
+    <div class="p-sub">Lista de precios — ${now} &nbsp;·&nbsp; ${fuente.length} productos${provFilt ? ` &nbsp;·&nbsp; ${provFilt}` : ""}${rubroFilt ? ` &nbsp;·&nbsp; ${rubroFilt}` : ""}</div>
     ${seccionesHtml}
     <div class="p-footer">JPSoft | Tienda &nbsp;·&nbsp; ${now}</div>`;
 
