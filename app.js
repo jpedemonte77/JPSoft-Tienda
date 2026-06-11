@@ -7677,7 +7677,7 @@ function abrirModalPresupuesto(id = null, clienteIdInicial = null) {
 
   renderPresupItems();
   document.getElementById("modalPresupuesto").classList.remove("hidden");
-  setTimeout(() => document.getElementById("presupClienteSelect")?.focus(), 80);
+  setTimeout(() => document.getElementById("presupObs")?.focus(), 80);
 }
 
 function cerrarModalPresupuesto() {
@@ -7705,9 +7705,10 @@ document.addEventListener("keydown", e => {
     cerrarModalPresupuesto();
   }
   if (e.key === "Enter") {
-    // No interferir con select abierto ni textarea
-    if (e.target.tagName === "TEXTAREA") return;
-    if (e.target.tagName === "SELECT") return;
+    // No interferir con select, textarea ni inputs dentro de los items
+    const tag = e.target.tagName;
+    if (tag === "TEXTAREA" || tag === "SELECT") return;
+    if (e.target.closest("#presupItems")) return;
     e.preventDefault(); e.stopPropagation();
     document.getElementById("btnGuardarPresupuesto")?.click();
   }
