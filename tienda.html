@@ -1326,90 +1326,89 @@
      MODAL: CONFIRMAR VENTA
 ══════════════════════════════ -->
 <div class="modal-overlay hidden" id="modalVenta">
-  <div class="modal" style="max-width:580px">
-    <div class="modal-header">
+  <div class="modal" style="max-width:520px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header" style="flex-shrink:0">
       <span class="modal-title">Confirmar venta <span id="modalVentaNro" style="font-size:12px;font-weight:400;color:var(--text3);font-family:'DM Mono',monospace"></span></span>
       <button class="modal-close" id="closeModalVenta">✕</button>
     </div>
-    <div class="modal-body">
-      <!-- Ítems del carrito con +/- -->
-      <div id="ventaCartItems" style="margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden"></div>
+    <div class="modal-body" style="overflow-y:auto;flex:1;padding:10px 16px;display:flex;flex-direction:column;gap:10px">
+
+      <!-- Ítems del carrito -->
+      <div id="ventaCartItems" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden"></div>
 
       <!-- Descuento -->
-      <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px">
         <span style="font-size:12px;color:var(--text2);flex-shrink:0">Descuento</span>
         <div style="display:flex;border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;flex-shrink:0">
-          <button class="desc-tipo-btn active" data-tipo="pesos" style="padding:4px 9px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;background:var(--accent);color:#fff">$</button>
-          <button class="desc-tipo-btn" data-tipo="pct" style="padding:4px 9px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;background:var(--surface2);color:var(--text2)">%</button>
+          <button class="desc-tipo-btn active" data-tipo="pesos" style="padding:3px 8px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;background:var(--accent);color:#fff">$</button>
+          <button class="desc-tipo-btn" data-tipo="pct" style="padding:3px 8px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;background:var(--surface2);color:var(--text2)">%</button>
         </div>
-        <input type="number" id="descuentoInput" min="0" placeholder="0" style="width:64px;font-size:13px;padding:4px 8px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);font-family:inherit;text-align:right;outline:none" />
+        <input type="number" id="descuentoInput" min="0" placeholder="0" style="width:64px;font-size:13px;padding:3px 8px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);font-family:inherit;text-align:right;outline:none" />
         <span style="font-size:12px;color:var(--danger);font-weight:500;flex:1;text-align:right" id="modalDescBar"></span>
       </div>
 
-      <!-- Totales -->
-      <div style="padding:0 2px;margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:4px">
+      <!-- Totales compactos -->
+      <div style="padding:0 2px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:3px">
           <span>Subtotal</span><span id="modalSubtotal">$0</span>
         </div>
-        <div id="modalDescuentoRow" style="display:none;justify-content:space-between;font-size:13px;color:var(--danger);margin-bottom:4px">
+        <div id="modalDescuentoRow" style="display:none;justify-content:space-between;font-size:12px;color:var(--danger);margin-bottom:3px">
           <span id="modalDescuentoLabel">Descuento</span><span id="modalDescuentoMonto"></span>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;padding-top:10px;border-top:1px solid var(--border);align-items:center">
-          <span>Total</span><span id="modalTotal" style="font-family:'DM Mono',monospace;font-size:26px">$0</span>
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;padding-top:8px;border-top:1px solid var(--border);align-items:center">
+          <span>Total</span><span id="modalTotal" style="font-family:'DM Mono',monospace;font-size:20px">$0</span>
         </div>
       </div>
 
-      <!-- Métodos de pago -->
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">Forma de pago</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px" id="pagoGrid">
-          <button class="pago-chip selected-efectivo" data-metodo="efectivo" style="padding:10px 8px;font-size:14px;text-align:center">Efectivo</button>
-          <button class="pago-chip" data-metodo="mp" style="padding:10px 8px;font-size:14px;text-align:center">Mercado Pago</button>
-          <button class="pago-chip" data-metodo="debito" style="padding:10px 8px;font-size:14px;text-align:center">Débito</button>
-          <button class="pago-chip" data-metodo="credito" style="padding:10px 8px;font-size:14px;text-align:center">Crédito</button>
+      <!-- Forma de pago compacta -->
+      <div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Forma de pago</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px" id="pagoGrid">
+          <button class="pago-chip selected-efectivo" data-metodo="efectivo" style="padding:7px 6px;font-size:12px;text-align:center">Efectivo</button>
+          <button class="pago-chip" data-metodo="mp" style="padding:7px 6px;font-size:12px;text-align:center">Mercado Pago</button>
+          <button class="pago-chip" data-metodo="debito" style="padding:7px 6px;font-size:12px;text-align:center">Débito</button>
+          <button class="pago-chip" data-metodo="credito" style="padding:7px 6px;font-size:12px;text-align:center">Crédito</button>
         </div>
       </div>
 
       <!-- Cliente y tipo de registro -->
-      <div id="ventaClienteBloque" style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;flex-direction:column;gap:8px">
+      <div id="ventaClienteBloque" style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;flex-direction:column;gap:7px">
         <div style="font-size:12px;color:var(--text2)">Cliente <span style="font-size:11px;color:var(--text3)">(opcional)</span></div>
-        <!-- Selector -->
         <div id="ventaClienteSelector" style="display:flex;gap:6px">
-          <select id="ventaClienteSelect" class="form-select" style="flex:1;font-size:13px">
+          <select id="ventaClienteSelect" class="form-select" style="flex:1;font-size:12px">
             <option value="">Sin cliente…</option>
           </select>
-          <button type="button" id="btnNuevoClienteVenta" class="btn-secondary" style="font-size:12px;padding:5px 10px;white-space:nowrap">+ Nuevo</button>
+          <button type="button" id="btnNuevoClienteVenta" class="btn-secondary" style="font-size:11px;padding:4px 9px;white-space:nowrap">+ Nuevo</button>
         </div>
-        <!-- Cliente seleccionado -->
-        <div id="ventaClienteSeleccionado" style="display:none;flex-direction:column;gap:8px">
-          <div style="display:flex;align-items:center;gap:8px;background:#EAF3DE;border:1px solid #9FE1CB;border-radius:var(--radius-sm);padding:6px 10px">
-            <div style="width:24px;height:24px;border-radius:50%;background:#1D9E75;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0" id="ventaClienteAvatar">—</div>
+        <div id="ventaClienteSeleccionado" style="display:none;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px;background:#EAF3DE;border:1px solid #9FE1CB;border-radius:var(--radius-sm);padding:5px 10px">
+            <div style="width:22px;height:22px;border-radius:50%;background:#1D9E75;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0" id="ventaClienteAvatar">—</div>
             <div style="flex:1;min-width:0">
-              <div style="font-size:12.5px;font-weight:500;color:#085041;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="ventaClienteNombre">—</div>
+              <div style="font-size:12px;font-weight:500;color:#085041;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="ventaClienteNombre">—</div>
               <div style="font-size:11px;color:#0F6E56" id="ventaClienteDeuda"></div>
             </div>
             <button type="button" id="btnQuitarClienteVenta" style="background:none;border:none;cursor:pointer;color:#0F6E56;font-size:14px;padding:2px">✕</button>
           </div>
-          <!-- Chips tipo de registro -->
-          <div style="font-size:11px;color:var(--text3);margin-bottom:2px">¿Cómo registrarlo?</div>
+          <div style="font-size:11px;color:var(--text3)">¿Cómo registrarlo?</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button type="button" class="venta-tipo-chip" data-tipo="" style="font-size:12px;padding:5px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:inherit">Solo registrar</button>
-            <button type="button" class="venta-tipo-chip" data-tipo="fiado" style="font-size:12px;padding:5px 12px;border-radius:var(--radius-sm);border:1px solid #F7C1C1;background:#FCEBEB;color:#A32D2D;cursor:pointer;font-family:inherit">Fiado</button>
-            <button type="button" class="venta-tipo-chip" data-tipo="cortesia" style="font-size:12px;padding:5px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:inherit">Cortesía</button>
+            <button type="button" class="venta-tipo-chip" data-tipo="" style="font-size:11.5px;padding:4px 10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:inherit">Solo registrar</button>
+            <button type="button" class="venta-tipo-chip" data-tipo="fiado" style="font-size:11.5px;padding:4px 10px;border-radius:var(--radius-sm);border:1px solid #F7C1C1;background:#FCEBEB;color:#A32D2D;cursor:pointer;font-family:inherit">Fiado</button>
+            <button type="button" class="venta-tipo-chip" data-tipo="cortesia" style="font-size:11.5px;padding:4px 10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:inherit">Cortesía</button>
           </div>
         </div>
       </div>
 
       <!-- Nota -->
-      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Nota <span style="font-size:11px;color:var(--text3)">(opcional)</span></div>
+      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:7px 12px">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:5px">Nota <span style="color:var(--text3)">(opcional)</span></div>
         <input type="text" id="notaVentaInput" placeholder="Ej: regalo, pedido especial…" maxlength="100"
-          style="width:100%;font-size:12px;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);font-family:inherit;outline:none;color:var(--text);box-sizing:border-box" />
+          style="width:100%;font-size:12px;padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);font-family:inherit;outline:none;color:var(--text);box-sizing:border-box" />
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between">
-      <button class="btn-danger" id="btnCancelarVenta" style="font-size:14px;padding:10px 16px">Cancelar</button>
-      <button class="btn-primary" id="btnConfirmarVentaFinal" style="font-size:14px;padding:10px 20px">Confirmar</button>
+    <!-- Footer siempre visible -->
+    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border)">
+      <button class="btn-danger" id="btnCancelarVenta" style="font-size:13px;padding:9px 16px">Cancelar</button>
+      <button class="btn-primary" id="btnConfirmarVentaFinal" style="font-size:13px;padding:9px 20px">Confirmar</button>
     </div>
   </div>
 </div>
