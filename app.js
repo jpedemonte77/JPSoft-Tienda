@@ -3000,8 +3000,8 @@ function renderProveedores() {
     const highlighted = provFilaActiva === idx;
     const tdBg = highlighted ? "background:var(--bg3)" : "";
 
-    // WhatsApp
-    let waHref = null;
+    // WhatsApp link
+    let waCell = "—";
     if (p.whatsapp) {
       let tel = p.whatsapp.replace(/\D/g, "");
       if (!tel.startsWith("549") && !tel.startsWith("541")) {
@@ -3010,22 +3010,22 @@ function renderProveedores() {
         else if (tel.startsWith("9")) tel = "54" + tel;
         else tel = "549" + tel;
       }
-      waHref = `https://wa.me/${tel}`;
+      waCell = `<a href="https://wa.me/${tel}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;color:#0F6E56;text-decoration:none;font-size:12px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#1D9E75"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.05 2C6.495 2 2 6.495 2 12.05c0 1.868.497 3.623 1.362 5.14L2 22l4.948-1.337A10.01 10.01 0 0 0 12.05 22C17.605 22 22 17.505 22 11.95 22 6.495 17.605 2 12.05 2zm0 18.385a8.33 8.33 0 0 1-4.239-1.158l-.304-.18-3.143.849.845-3.073-.198-.315A8.324 8.324 0 0 1 3.715 12.05c0-4.598 3.737-8.335 8.335-8.335 4.598 0 8.335 3.737 8.335 8.335 0 4.598-3.737 8.335-8.335 8.335z"/></svg>
+        ${p.whatsapp}
+      </a>`;
     }
 
     return `<tr class="prov-row" data-id="${id}" data-idx="${idx}" style="cursor:pointer">
       <td style="font-weight:500;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${tdBg}">${p.nombre||"—"}</td>
       <td style="font-size:12px;${tdBg}"><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text2)">${tipo}</span></td>
       <td style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${tdBg}">${p.categoria||"—"}</td>
-      <td style="font-size:12px;color:var(--text2);white-space:nowrap;${tdBg}">${p.whatsapp||"—"}</td>
+      <td style="font-size:12px;${tdBg}">${waCell}</td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap;${tdBg}">${p.localidad||"—"}</td>
       <td class="num" style="font-weight:600;${tdBg}">${p.ganancia??0}%</td>
       <td class="num" style="${tdBg}">${cantProd}</td>
       <td style="${tdBg}">
         <div style="display:flex;gap:4px;justify-content:flex-end">
-          ${waHref ? `<a href="${waHref}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;padding:4px 7px;border-radius:var(--radius-sm);background:#E1F5EE;border:1px solid #9FE1CB;font-size:11px;color:#0F6E56;text-decoration:none">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="#1D9E75"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.05 2C6.495 2 2 6.495 2 12.05c0 1.868.497 3.623 1.362 5.14L2 22l4.948-1.337A10.01 10.01 0 0 0 12.05 22C17.605 22 22 17.505 22 11.95 22 6.495 17.605 2 12.05 2zm0 18.385a8.33 8.33 0 0 1-4.239-1.158l-.304-.18-3.143.849.845-3.073-.198-.315A8.324 8.324 0 0 1 3.715 12.05c0-4.598 3.737-8.335 8.335-8.335 4.598 0 8.335 3.737 8.335 8.335 0 4.598-3.737 8.335-8.335 8.335z"/></svg>
-          </a>` : ""}
           <button class="btn-secondary" style="font-size:11px;padding:4px 7px" onclick="event.stopPropagation();window._filtrarPorProv('${p.nombre}')">Productos</button>
           <button class="btn-secondary" style="font-size:11px;padding:4px 7px" onclick="event.stopPropagation();window._editarProveedor('${id}')">Editar</button>
           <button class="btn-danger" style="font-size:11px;padding:4px 6px" onclick="event.stopPropagation();window._eliminarProveedor('${id}','${(p.nombre||'').replace(/'/g,"&#39;")}',${cantProd})">🗑</button>
@@ -3037,24 +3037,23 @@ function renderProveedores() {
 
 // ── Navegación con teclado en proveedores ──
 document.getElementById("proveedoresGrid")?.addEventListener("keydown", e => {
+  if (["ArrowDown","ArrowUp","Enter","Escape"].indexOf(e.key) === -1) return;
+  e.preventDefault();
   const lista = Object.entries(proveedores).sort((a,b) => a[1].nombre.localeCompare(b[1].nombre));
   if (!lista.length) return;
   if (e.key === "ArrowDown") {
-    e.preventDefault();
     provFilaActiva = Math.min(provFilaActiva + 1, lista.length - 1);
-    renderProveedores();
-    document.querySelector(`.prov-row[data-idx="${provFilaActiva}"]`)?.scrollIntoView({ block:"nearest" });
   } else if (e.key === "ArrowUp") {
-    e.preventDefault();
     provFilaActiva = Math.max(provFilaActiva - 1, 0);
-    renderProveedores();
-    document.querySelector(`.prov-row[data-idx="${provFilaActiva}"]`)?.scrollIntoView({ block:"nearest" });
   } else if (e.key === "Enter" && provFilaActiva >= 0) {
-    e.preventDefault();
-    window._editarProveedor(lista[provFilaActiva][0]);
+    window._editarProveedor(lista[provFilaActiva][0]); return;
   } else if (e.key === "Escape") {
-    provFilaActiva = -1; renderProveedores();
+    provFilaActiva = -1;
   }
+  renderProveedores();
+  document.querySelector(`.prov-row[data-idx="${provFilaActiva}"]`)?.scrollIntoView({ block:"nearest" });
+  // mantener foco en el tbody
+  document.getElementById("proveedoresGrid")?.focus();
 });
 
 // Click en fila
@@ -3193,14 +3192,16 @@ function abrirModalProveedor(id) {
   const tipoSel    = document.getElementById("vf-tipo");
   const tipoCustom = document.getElementById("vf-tipo-custom");
   const tipoActual = p?.tipo || "General";
-  // Reconstruir opciones
+  // Reconstruir opciones del select de tipo (solo General + custom existentes)
   tipoSel.innerHTML = '<option value="General">General</option>';
   [...tiposUsados].sort().forEach(t => {
     const opt = document.createElement("option");
     opt.value = t; opt.textContent = t;
     tipoSel.appendChild(opt);
   });
-  tipoSel.innerHTML += '<option value="custom">+ Nuevo tipo…</option>';
+  const optCustom = document.createElement("option");
+  optCustom.value = "custom"; optCustom.textContent = "+ Nuevo tipo…";
+  tipoSel.appendChild(optCustom);
   if (tipoActual === "General" || tiposUsados.has(tipoActual)) {
     tipoSel.value = tipoActual;
     tipoCustom.style.display = "none";
