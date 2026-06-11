@@ -565,22 +565,26 @@
 
       <!-- Tabla compras -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-        <table>
+        <table style="table-layout:fixed;width:100%">
           <colgroup>
+            <col style="width:90px">
+            <col style="width:70px">
+            <col style="width:130px">
+            <col style="width:130px">
+            <col>
+            <col style="width:90px">
             <col style="width:110px">
             <col style="width:80px">
-            <col style="width:180px">
-            <col>
-            <col style="width:110px">
-            <col style="width:100px">
           </colgroup>
           <thead>
             <tr>
               <th>Fecha</th>
               <th>Hora</th>
               <th>Proveedor</th>
+              <th>Nº Factura</th>
               <th>Productos</th>
               <th class="num">Total</th>
+              <th>Forma de pago</th>
               <th>Usuario</th>
             </tr>
           </thead>
@@ -1852,17 +1856,24 @@
       <span class="modal-title">Registrar compra</span>
       <button class="modal-close" id="closeModalCompra">✕</button>
     </div>
-    <div class="modal-body">
-      <!-- Proveedor -->
-      <div class="form-group">
-        <label class="form-label">Proveedor</label>
-        <select class="form-select" id="compraProvSelect" style="width:100%">
-          <option value="">Seleccioná un proveedor…</option>
-        </select>
+    <div class="modal-body" style="padding:10px 16px">
+
+      <!-- Proveedor + Nº Factura -->
+      <div style="display:grid;grid-template-columns:1fr 140px;gap:8px;margin-bottom:8px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="margin-bottom:3px">Proveedor</label>
+          <select class="form-select" id="compraProvSelect" style="width:100%">
+            <option value="">Seleccioná un proveedor…</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="margin-bottom:3px">Nº de Factura</label>
+          <input type="text" class="form-input" id="compraNroFactura" placeholder="Ej: 0001-00123456" maxlength="30" />
+        </div>
       </div>
 
       <!-- Items de la compra -->
-      <div style="margin-top:14px">
+      <div style="margin-bottom:8px">
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Productos comprados</div>
         <div style="display:grid;grid-template-columns:1fr 80px 100px 28px;gap:6px;padding:0 0 4px">
           <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Producto</div>
@@ -1877,19 +1888,33 @@
         </button>
       </div>
 
-      <!-- Total -->
-      <div style="margin-top:14px;background:var(--surface2);border-radius:var(--radius-sm);padding:10px 13px;display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:13px;font-weight:500;color:var(--text2)">Total de la compra</div>
-        <div id="compraTotalDisplay" style="font-size:18px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text1)">$0</div>
+      <!-- Total + Forma de pago -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 13px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:13px;font-weight:500;color:var(--text2)">Total</div>
+          <div id="compraTotalDisplay" style="font-size:18px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text1)">$0</div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="margin-bottom:3px">Forma de pago</label>
+          <select class="form-select" id="compraFormaPago" style="width:100%">
+            <option value="Efectivo">Efectivo</option>
+            <option value="Transferencia">Transferencia</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Cuenta corriente">Cuenta corriente</option>
+            <option value="Débito">Débito</option>
+            <option value="Crédito">Crédito</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
       </div>
 
-      <!-- Nota opcional -->
-      <div class="form-group" style="margin-top:10px">
-        <label class="form-label">Nota <span style="font-weight:400;color:var(--text3)">(opcional)</span></label>
-        <input type="text" class="form-input" id="compraNotaInput" placeholder="Ej: Pedido semanal" maxlength="100" />
+      <!-- Observaciones -->
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label" style="margin-bottom:3px">Observaciones <span style="font-weight:400;color:var(--text3)">(opcional)</span></label>
+        <input type="text" class="form-input" id="compraNotaInput" placeholder="Ej: Pedido semanal, descuento aplicado…" maxlength="150" />
       </div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="padding:8px 16px">
       <button class="btn-secondary" id="btnCancelarCompra">Cancelar</button>
       <button class="btn-primary" id="btnConfirmarCompra">Registrar compra</button>
     </div>
