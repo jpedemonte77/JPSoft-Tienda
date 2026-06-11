@@ -2992,6 +2992,26 @@ function renderProveedores() {
   grid.innerHTML = lista.map(([id, p]) => {
     const tipo     = p.tipo || (p.tabaco ? "tabaco" : "general");
     const cantProd = allProducts.filter(x => x.proveedor === p.nombre).length;
+
+    // WhatsApp
+    let waHref = null;
+    if (p.whatsapp) {
+      let tel = p.whatsapp.replace(/\D/g, "");
+      if (tel.startsWith("549") || tel.startsWith("541")) {}
+      else if (tel.startsWith("54")) tel = "549" + tel.slice(2);
+      else if (tel.startsWith("0"))  tel = "549" + tel.slice(1);
+      else if (tel.startsWith("9"))  tel = "54"  + tel;
+      else                            tel = "549" + tel;
+      waHref = `https://wa.me/${tel}`;
+    }
+
+    const contacto = [
+      p.whatsapp ? `<div class="proveedor-row"><span class="label">WhatsApp</span><span class="val">${p.whatsapp}</span></div>` : "",
+      p.email    ? `<div class="proveedor-row"><span class="label">Email</span><span class="val" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">${p.email}</span></div>` : "",
+      p.direccion ? `<div class="proveedor-row"><span class="label">Dirección</span><span class="val">${p.direccion}${p.cp ? ` (${p.cp})` : ""}</span></div>` : "",
+      p.localidad ? `<div class="proveedor-row"><span class="label">Localidad</span><span class="val">${p.localidad}</span></div>` : "",
+    ].filter(Boolean).join("");
+
     return `<div class="proveedor-card">
       <div class="proveedor-card-header">
         <div class="proveedor-nombre">${p.nombre}</div>
@@ -3000,7 +3020,12 @@ function renderProveedores() {
       <div class="proveedor-row"><span class="label">Margen ganancia</span><span class="val"><span class="badge ${TIPO_BADGE[tipo] || "badge-neutral"}">${p.ganancia ?? 0}%</span></span></div>
       <div class="proveedor-row"><span class="label">Productos</span><span class="val">${cantProd}</span></div>
       ${p.categoria ? `<div class="proveedor-row"><span class="label">Categoría</span><span class="val">${p.categoria}</span></div>` : ""}
+      ${contacto}
       <div class="proveedor-actions">
+        ${waHref ? `<a href="${waHref}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-sm);background:#E1F5EE;border:1px solid #9FE1CB;font-size:12px;color:#0F6E56;text-decoration:none">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="#1D9E75"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.05 2C6.495 2 2 6.495 2 12.05c0 1.868.497 3.623 1.362 5.14L2 22l4.948-1.337A10.01 10.01 0 0 0 12.05 22C17.605 22 22 17.505 22 11.95 22 6.495 17.605 2 12.05 2zm0 18.385a8.33 8.33 0 0 1-4.239-1.158l-.304-.18-3.143.849.845-3.073-.198-.315A8.324 8.324 0 0 1 3.715 12.05c0-4.598 3.737-8.335 8.335-8.335 4.598 0 8.335 3.737 8.335 8.335 0 4.598-3.737 8.335-8.335 8.335z"/></svg>
+          Contactar
+        </a>` : ""}
         <button class="btn-secondary" style="font-size:12px;padding:5px 10px;flex:1" onclick="window._filtrarPorProv('${p.nombre}')">Ver productos</button>
         <button class="btn-secondary" style="font-size:12px;padding:5px 10px;flex:1" onclick="window._editarProveedor('${id}')">Editar</button>
         <button class="btn-danger" style="font-size:12px;padding:5px 10px" onclick="window._eliminarProveedor('${id}','${(p.nombre||'').replace(/'/g,'&#39;')}',${cantProd})">🗑</button>
@@ -3033,6 +3058,18 @@ document.getElementById("btnNuevoProveedor").addEventListener("click", () => abr
 document.getElementById("closeModalProveedor").addEventListener("click", cerrarModalProveedor);
 document.getElementById("btnCancelarProveedor").addEventListener("click", cerrarModalProveedor);
 
+// Exportar Proveedores
+document.getElementById("btnExportarProveedoresExcel")?.addEventListener("click", () => {
+  const lista = Object.values(proveedores).sort((a,b) => (a.nombre||"").localeCompare(b.nombre||""));
+  if (!lista.length) { showToast("No hay proveedores para exportar.", "warning"); return; }
+  const data = [["Nombre","Tipo","Categoría","Margen %","WhatsApp","Email","Dirección","Localidad","CP","Productos"]];
+  lista.forEach(p => {
+    const cantProd = allProducts.filter(x => x.proveedor === p.nombre).length;
+    data.push([p.nombre||"",p.tipo||"",p.categoria||"",p.ganancia??0,p.whatsapp||"",p.email||"",p.direccion||"",p.localidad||"",p.cp||"",cantProd]);
+  });
+  exportarExcel([{ nombre:"Proveedores", data, colsMoney:[] }], `JPSoft_Tienda_Proveedores_${todayKey()}.xlsx`);
+});
+
 window._editarProveedor = function(id) { abrirModalProveedor(id); };
 
 // Al cambiar el tipo, pre-cargar el margen global correspondiente
@@ -3055,7 +3092,11 @@ function abrirModalProveedor(id) {
   document.getElementById("vf-nombre").value    = p?.nombre    || "";
   document.getElementById("vf-tipo").value      = tipo;
   document.getElementById("vf-categoria").value = p?.categoria || "";
-  // Si es nuevo, pre-cargar margen global; si es edición, mostrar el margen actual
+  document.getElementById("vf-whatsapp").value  = p?.whatsapp  || "";
+  document.getElementById("vf-email").value     = p?.email     || "";
+  document.getElementById("vf-direccion").value = p?.direccion || "";
+  document.getElementById("vf-localidad").value = p?.localidad || "";
+  document.getElementById("vf-cp").value        = p?.cp        || "";
   if (id) {
     document.getElementById("vf-ganancia").value = p?.ganancia ?? "";
     document.getElementById("vf-ganancia-hint").textContent = "Margen actual del proveedor";
@@ -3080,11 +3121,14 @@ document.getElementById("btnGuardarProveedor").addEventListener("click", async (
   if (isNaN(ganancia) || ganancia < 0) { showToast("Ingresá un margen válido (0 o más).", "error"); return; }
 
   const data = {
-    nombre,
-    ganancia,
-    tipo,
+    nombre, ganancia, tipo,
     tabaco:    tipo === "tabaco" || tipo === "cigarrillos",
-    categoria: document.getElementById("vf-categoria").value.trim()
+    categoria: document.getElementById("vf-categoria").value.trim(),
+    whatsapp:  document.getElementById("vf-whatsapp").value.trim(),
+    email:     document.getElementById("vf-email").value.trim(),
+    direccion: document.getElementById("vf-direccion").value.trim(),
+    localidad: document.getElementById("vf-localidad").value.trim(),
+    cp:        document.getElementById("vf-cp").value.trim(),
   };
 
   if (provEditId) {
