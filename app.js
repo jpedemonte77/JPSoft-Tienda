@@ -580,11 +580,13 @@ document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
     if (view === "gastos") {
       const hoy = todayKey();
       gastoFiltroDesde = hoy; gastoFiltroHasta = hoy;
+      gastoFilaActiva = -1;
       const inputDesde = document.getElementById("gastosFechaDesde");
       const inputHasta = document.getElementById("gastosFechaHasta");
       if (inputDesde) { inputDesde.value = hoy; inputDesde._initialized = false; }
       if (inputHasta) { inputHasta.value = hoy; inputHasta._initialized = false; }
       renderGastos();
+      setTimeout(() => document.getElementById("gastosTableBody")?.focus(), 100);
     }
     if (view === "clientes")          { renderClientesLista(); setTimeout(() => document.getElementById("clientesLista")?.focus(), 100); }
     if (view === "compras")           renderCompras();
@@ -5470,6 +5472,51 @@ document.getElementById("btnConfirmarGasto")?.addEventListener("click", async ()
   cerrarModalGasto();
 });
 
+// ── Navegación con teclado en tabla de gastos ──
+let gastoFilaActiva = -1;
+
+function getGastosOrdenados() {
+  const lista = [];
+  Object.entries(cajaData).forEach(([fecha, dia]) => {
+    if (fecha < gastoFiltroDesde || fecha > gastoFiltroHasta) return;
+    Object.entries(dia.gastos || {}).forEach(([id, g]) => lista.push({ ...g, _id: id, _fecha: fecha }));
+  });
+  return lista.sort((a, b) => b._fecha.localeCompare(a._fecha) || (b.hora||"").localeCompare(a.hora||""));
+}
+
+document.getElementById("gastosTableBody")?.addEventListener("keydown", e => {
+  const gastos = getGastosOrdenados();
+  if (!gastos.length) return;
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    gastoFilaActiva = Math.min(gastoFilaActiva + 1, gastos.length - 1);
+    resaltarFilaGasto(gastoFilaActiva);
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    gastoFilaActiva = Math.max(gastoFilaActiva - 1, 0);
+    resaltarFilaGasto(gastoFilaActiva);
+  } else if (e.key === "Enter" && gastoFilaActiva >= 0) {
+    e.preventDefault();
+    const g = gastos[gastoFilaActiva];
+    if (g) abrirModalGasto(g._id, g);
+  } else if (e.key === "Escape") {
+    gastoFilaActiva = -1;
+    resaltarFilaGasto(-1);
+  }
+});
+
+function resaltarFilaGasto(idx) {
+  document.querySelectorAll("#gastosTableBody tr").forEach((tr, i) => {
+    tr.querySelectorAll("td").forEach(td => {
+      td.style.background = i === idx ? "var(--bg3)" : "";
+    });
+    if (i === idx) tr.scrollIntoView({ block: "nearest" });
+  });
+}
+
+// Enfocar tbody al entrar a Gastos y resetear fila activa
+// (ya se maneja en el listener de navegación de vistas)
+
 // Enter en monto confirma; Escape cierra
 document.getElementById("modalGasto")?.addEventListener("keydown", e => {
   if (e.key === "Enter" && document.activeElement?.id === "gastoMontoInput") {
@@ -5481,123 +5528,122 @@ document.getElementById("modalGasto")?.addEventListener("keydown", e => {
 
 // ── Exportar Gastos Excel ──
 document.getElementById("btnExportarGastosExcel")?.addEventListener("click", () => {
-  const { gastos, total } = calcTotalesGastos(gastoFechaKey);
-  if (!gastos.length) { showToast("No hay gastos para exportar.", "warning"); return; }
+  const gastosTodos = [];
+  Object.entries(cajaData).forEach(([fecha, dia]) => {
+    if (fecha < gastoFiltroDesde || fecha > gastoFiltroHasta) return;
+    Object.entries(dia.gastos || {}).forEach(([id, g]) => gastosTodos.push({ ...g, _fecha: fecha }));
+  });
+  if (!gastosTodos.length) { showToast("No hay gastos para exportar.", "warning"); return; }
+  gastosTodos.sort((a, b) => b._fecha.localeCompare(a._fecha) || (b.hora||"").localeCompare(a.hora||""));
 
-  const data = [["Hora", "Categoría", "Descripción", "Monto", "Usuario"]];
-  [...gastos]
-    .sort((a, b) => (b.hora || "").localeCompare(a.hora || ""))
-    .forEach(g => data.push([
+  const data = [["Fecha","Hora","Categoría","Detalle","Forma de pago","Monto","Usuario"]];
+  gastosTodos.forEach(g => {
+    const [fy,fm,fd] = g._fecha.split("-");
+    data.push([
+      `${parseInt(fd)}/${parseInt(fm)}/${fy}`,
       fmtHora(g.hora) || "—",
       g.cat || "",
       g.desc || "",
+      g.formaPago || "",
       g.monto || 0,
       g.admin || ""
-    ]));
-  // Fila de total
-  data.push(["", "", "TOTAL", total, ""]);
+    ]);
+  });
+  const total = gastosTodos.reduce((s, g) => s + (g.monto||0), 0);
+  data.push(["","","","","TOTAL", total, ""]);
 
   exportarExcel(
-    [{ nombre: "Gastos", data, colsMoney: [3] }],
-    `JPSoft_Tienda_Gastos_${gastoFechaKey}.xlsx`
+    [{ nombre: "Gastos", data, colsMoney: [5] }],
+    `JPSoft_Tienda_Gastos_${gastoFiltroDesde}_${gastoFiltroHasta}.xlsx`
   );
 });
 
 // ── Imprimir Gastos PDF ──
 document.getElementById("btnImprimirGastosPDF")?.addEventListener("click", async () => {
-  const { gastos, total, tots } = calcTotalesGastos(gastoFechaKey);
-  if (!gastos.length) { showToast("No hay gastos para imprimir.", "warning"); return; }
+  const gastosTodos = [];
+  Object.entries(cajaData).forEach(([fecha, dia]) => {
+    if (fecha < gastoFiltroDesde || fecha > gastoFiltroHasta) return;
+    Object.entries(dia.gastos || {}).forEach(([id, g]) => gastosTodos.push({ ...g, _fecha: fecha }));
+  });
+  if (!gastosTodos.length) { showToast("No hay gastos para imprimir.", "warning"); return; }
+  gastosTodos.sort((a, b) => b._fecha.localeCompare(a._fecha) || (b.hora||"").localeCompare(a.hora||""));
 
-  const fechaLbl = fechaLabel(gastoFechaKey);
-  const now = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const total = gastosTodos.reduce((s, g) => s + (g.monto||0), 0);
+  const mismaFecha = gastoFiltroDesde === gastoFiltroHasta;
+  const periodoLbl = mismaFecha ? fechaLabel(gastoFiltroDesde) : `${fechaLabel(gastoFiltroDesde)} al ${fechaLabel(gastoFiltroHasta)}`;
+  const now = new Date().toLocaleDateString("es-AR", { day:"2-digit", month:"2-digit", year:"numeric" });
 
   const CAT_COLOR = {
-    "Retiro":         "#7a3a00",
-    "Pago proveedor": "#0C447C",
-    "Insumos":        "#27500A",
-    "Otro":           "#555555",
+    "Impuesto / Tasa": "#3C3489", "Servicio": "#0C447C", "Seguro": "#7a3a00",
+    "Mantenimiento / Reparación": "#27500A", "Insumo": "#27500A",
+    "Retiro": "#7a3a00", "Otro": "#555555",
   };
 
-  const filas = [...gastos]
-    .sort((a, b) => (b.hora || "").localeCompare(a.hora || ""))
-    .map(g => `<tr style="border-bottom:1px solid #f0f0f0">
-      <td style="padding:5px 8px;font-family:monospace;font-size:11px;color:#888">${fmtHora(g.hora) || "—"}</td>
-      <td style="padding:5px 8px"><span style="font-size:11px;font-weight:500;color:${CAT_COLOR[g.cat] || '#555'}">${g.cat}</span></td>
-      <td style="padding:5px 8px;font-size:12px;color:#444">${g.desc || "—"}</td>
-      <td style="padding:5px 8px;text-align:right;font-weight:600;font-size:13px">${fmt(g.monto || 0)}</td>
-      <td style="padding:5px 8px;font-size:11px;color:#888">${g.admin || "—"}</td>
-    </tr>`).join("");
-
-  const statsHtml = Object.entries(tots)
-    .filter(([, v]) => v > 0)
-    .map(([cat, v]) => `
-      <div style="border:1px solid #eee;border-radius:6px;padding:8px 12px;flex:1;min-width:100px">
-        <div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">${cat}</div>
-        <div style="font-size:14px;font-weight:600;color:${CAT_COLOR[cat] || '#111'}">${fmt(v)}</div>
-      </div>`).join("");
+  const filas = gastosTodos.map(g => {
+    const [fy,fm,fd] = g._fecha.split("-");
+    const fechaFmt = `${parseInt(fd)}/${parseInt(fm)}/${fy}`;
+    return `<tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:5px 8px;font-size:11px;color:#888">${fechaFmt}</td>
+      <td style="padding:5px 8px;font-family:monospace;font-size:11px;color:#888">${fmtHora(g.hora)||"—"}</td>
+      <td style="padding:5px 8px"><span style="font-size:11px;font-weight:500;color:${CAT_COLOR[g.cat]||'#555'}">${g.cat}</span></td>
+      <td style="padding:5px 8px;font-size:12px;color:#444">${g.desc||"—"}</td>
+      <td style="padding:5px 8px;font-size:11px;color:#666">${g.formaPago||"—"}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:600;font-size:13px">${fmt(g.monto||0)}</td>
+      <td style="padding:5px 8px;font-size:11px;color:#888">${g.admin||"—"}</td>
+    </tr>`;
+  }).join("");
 
   const content = `
-    <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#111;padding:2rem;max-width:580px;margin:0 auto">
+    <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#111;padding:2rem;max-width:680px;margin:0 auto">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
         <div style="font-size:18px;font-weight:600">JPSoft | Tienda</div>
-        <div style="font-size:11px;color:#888;text-align:right">Generado el ${now}</div>
+        <div style="font-size:11px;color:#888">Generado el ${now}</div>
       </div>
-      <div style="font-size:12px;color:#888;margin-bottom:1.25rem">Gastos — ${fechaLbl}</div>
-
-      <!-- Stats -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem">
-        <div style="border:1px solid #111;border-radius:6px;padding:8px 12px;flex:1;min-width:100px">
-          <div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Total</div>
-          <div style="font-size:16px;font-weight:700">${fmt(total)}</div>
-          <div style="font-size:10px;color:#aaa;margin-top:2px">${gastos.length} ${gastos.length === 1 ? "gasto" : "gastos"}</div>
-        </div>
-        ${statsHtml}
-      </div>
-
-      <!-- Tabla -->
+      <div style="font-size:12px;color:#888;margin-bottom:1.25rem">Gastos — ${periodoLbl} · ${gastosTodos.length} registros</div>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead>
           <tr style="background:#f5f5f5;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">
-            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Hora</th>
-            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Categoría</th>
-            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Descripción</th>
-            <th style="padding:6px 8px;text-align:right;font-weight:500;border-bottom:1px solid #eee">Monto</th>
-            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Usuario</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee;width:70px">Fecha</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee;width:50px">Hora</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee;width:130px">Categoría</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee">Detalle</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee;width:100px">Forma de pago</th>
+            <th style="padding:6px 8px;text-align:right;font-weight:500;border-bottom:1px solid #eee;width:80px">Monto</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500;border-bottom:1px solid #eee;width:80px">Usuario</th>
           </tr>
         </thead>
         <tbody>${filas}</tbody>
         <tfoot>
           <tr style="border-top:2px solid #111">
-            <td colspan="3" style="padding:8px 8px;font-weight:600;font-size:13px">TOTAL</td>
-            <td style="padding:8px 8px;text-align:right;font-weight:700;font-size:15px">${fmt(total)}</td>
+            <td colspan="5" style="padding:8px;font-weight:600;font-size:13px">TOTAL</td>
+            <td style="padding:8px;text-align:right;font-weight:700;font-size:15px">${fmt(total)}</td>
             <td></td>
           </tr>
         </tfoot>
       </table>
     </div>`;
 
-  const btn = document.getElementById("btnImprimirGastosPDF");
+  const btn  = document.getElementById("btnImprimirGastosPDF");
   const orig = btn.innerHTML;
   btn.disabled = true; btn.textContent = "Generando…";
 
   const container = document.createElement("div");
-  container.style.cssText = "position:fixed;left:-9999px;top:0;width:620px;background:#fff";
+  container.style.cssText = "position:fixed;left:-9999px;top:0;width:720px;background:#fff";
   container.innerHTML = content;
   document.body.appendChild(container);
 
   try {
-    const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: "#fff" });
+    const canvas = await html2canvas(container, { scale:2, useCORS:true, backgroundColor:"#fff" });
     const { jsPDF } = window.jspdf;
-    const pdf  = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const imgW = 210;
+    const pdf  = new jsPDF({ orientation:"landscape", unit:"mm", format:"a4" });
+    const imgW = 297;
     const imgH = (canvas.height * imgW) / canvas.width;
-    const pages = Math.ceil(imgH / 297);
+    const pages = Math.ceil(imgH / 210);
     for (let i = 0; i < pages; i++) {
       if (i > 0) pdf.addPage();
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, -i * 297, imgW, imgH);
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, -i*210, imgW, imgH);
     }
-    const [fy, fm, fd] = gastoFechaKey.split("-");
-    pdf.save(`JPSoft_Tienda_Gastos_${parseInt(fd)}-${parseInt(fm)}-${fy}.pdf`);
+    pdf.save(`JPSoft_Tienda_Gastos_${gastoFiltroDesde}_${gastoFiltroHasta}.pdf`);
     showToast("PDF generado ✓", "success");
   } catch(err) {
     showToast("Error al generar PDF: " + err.message, "error");
@@ -5607,193 +5653,7 @@ document.getElementById("btnImprimirGastosPDF")?.addEventListener("click", async
   }
 });
 
-// ============================================================
-//  COMPRAS
-// ============================================================
-let comprasData = [];
-let compraItems = []; // items del modal actual
 
-// ── Helpers ──
-function calcTotalCompra() {
-  return compraItems.reduce((s, item) => s + (parseFloat(item.precio) || 0) * (parseInt(item.qty) || 0), 0);
-}
-
-function renderCompraItemsModal() {
-  const wrap = document.getElementById("compraItems");
-  if (!wrap) return;
-  const provId   = document.getElementById("compraProvSelect")?.value;
-  const provProds = allProducts.filter(p => p.proveedor === proveedores[provId]?.nombre);
-
-  wrap.innerHTML = compraItems.map((item, i) => `
-    <div style="display:grid;grid-template-columns:1fr 80px 100px 28px;gap:6px;align-items:center">
-      <select class="form-select" data-ci-prod="${i}" style="font-size:12px">
-        <option value="">Seleccioná producto…</option>
-        ${provProds.map(p => `<option value="${p._id}" ${item.prodId === p._id ? "selected" : ""}>${p.desc}</option>`).join("")}
-      </select>
-      <input type="number" class="form-input" data-ci-qty="${i}" value="${item.qty || 1}" min="1"
-        placeholder="Cant." style="font-size:12px;text-align:center" />
-      <input type="number" class="form-input" data-ci-precio="${i}" value="${item.precio || ""}"
-        placeholder="$ costo" style="font-size:12px" />
-      <button type="button" data-ci-del="${i}"
-        style="background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;display:flex;align-items:center">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-        </svg>
-      </button>
-    </div>`).join("");
-
-  // Total
-  const total = document.getElementById("compraTotalDisplay");
-  if (total) total.textContent = fmt(Math.round(calcTotalCompra()));
-}
-
-// ── Render vista Compras ──
-function renderCompras() {
-  const tbody = document.getElementById("comprasTableBody");
-  const empty = document.getElementById("comprasEmptyMsg");
-  if (!tbody) return;
-
-  // Stats del mes
-  const hoy    = new Date();
-  const mesIni = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0,10);
-  const hoyKey = hoy.toISOString().slice(0,10);
-  const delMes = comprasData.filter(c => c.fecha >= mesIni && c.fecha <= hoyKey);
-  const totalMes = delMes.reduce((s, c) => s + (c.total || 0), 0);
-  document.getElementById("cmpStatTotal").textContent = fmt(totalMes);
-  document.getElementById("cmpStatCant").textContent  = delMes.length;
-  const ultimo = [...comprasData].sort((a,b) => b.ts?.localeCompare(a.ts||""))[0];
-  document.getElementById("cmpStatProv").textContent  = ultimo?.proveedor || "—";
-
-  if (!comprasData.length) {
-    tbody.innerHTML = "";
-    empty.style.display = "block";
-    return;
-  }
-  empty.style.display = "none";
-
-  const lista = [...comprasData].sort((a,b) => (b.ts||"").localeCompare(a.ts||""));
-  tbody.innerHTML = lista.map(c => {
-    const [fy,fm,fd] = (c.fecha||"").split("-");
-    const fechaFmt = c.fecha ? `${parseInt(fd)}/${parseInt(fm)}/${fy}` : "—";
-    const hora     = c.ts ? new Date(c.ts).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) : "—";
-    const prods    = (c.items||[]).map(i => `${i.desc}${i.qty>1?` ×${i.qty}`:""}`).join(", ") || "—";
-    return `<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${fechaFmt}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${hora}</td>
-      <td><span class="badge ${badgeClass(c.proveedor)}">${c.proveedor||"—"}</span></td>
-      <td style="font-size:12.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${prods}">${prods}</td>
-      <td class="num" style="font-weight:600">${fmt(c.total||0)}</td>
-      <td style="font-size:12px;color:var(--text2)">${c.admin||"—"}</td>
-    </tr>`;
-  }).join("");
-}
-
-// ── Firestore listener ──
-function initComprasListener() {
-  _unsubs.push(onSnapshot(collection(db, "compras"), snap => {
-    comprasData = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
-    if (document.getElementById("view-compras")?.classList.contains("active")) renderCompras();
-  }));
-}
-
-// ── Modal nueva compra ──
-function abrirModalCompra() {
-  compraItems = [{ prodId: "", qty: 1, precio: "", desc: "" }];
-  document.getElementById("compraNotaInput").value = "";
-  // Popular select de proveedores
-  const sel = document.getElementById("compraProvSelect");
-  sel.innerHTML = '<option value="">Seleccioná un proveedor…</option>';
-  Object.entries(proveedores).forEach(([id, p]) => {
-    const opt = document.createElement("option");
-    opt.value = id; opt.textContent = p.nombre;
-    sel.appendChild(opt);
-  });
-  renderCompraItemsModal();
-  document.getElementById("modalCompra").classList.remove("hidden");
-}
-
-function cerrarModalCompra() {
-  document.getElementById("modalCompra").classList.add("hidden");
-  compraItems = [];
-}
-
-document.getElementById("btnNuevaCompra")?.addEventListener("click", abrirModalCompra);
-document.getElementById("closeModalCompra")?.addEventListener("click", cerrarModalCompra);
-document.getElementById("btnCancelarCompra")?.addEventListener("click", cerrarModalCompra);
-
-// Cambio de proveedor → actualizar productos disponibles
-document.getElementById("compraProvSelect")?.addEventListener("change", () => {
-  compraItems = [{ prodId: "", qty: 1, precio: "", desc: "" }];
-  renderCompraItemsModal();
-});
-
-// Agregar item
-document.getElementById("btnAgregarItemCompra")?.addEventListener("click", () => {
-  compraItems.push({ prodId: "", qty: 1, precio: "", desc: "" });
-  renderCompraItemsModal();
-});
-
-// Delegación en items del modal
-document.getElementById("compraItems")?.addEventListener("change", e => {
-  const iProd  = e.target.dataset.ciProd;
-  const iQty   = e.target.dataset.ciQty;
-  const iPrecio = e.target.dataset.ciPrecio;
-  if (iProd !== undefined) {
-    const p = allProducts.find(x => x._id === e.target.value);
-    compraItems[iProd].prodId = e.target.value;
-    compraItems[iProd].desc   = p?.desc || "";
-    compraItems[iProd].precio = p?.lista || "";
-    renderCompraItemsModal();
-  }
-  if (iQty !== undefined)    { compraItems[iQty].qty    = parseInt(e.target.value) || 1; renderCompraItemsModal(); }
-  if (iPrecio !== undefined) { compraItems[iPrecio].precio = e.target.value; renderCompraItemsModal(); }
-});
-
-document.getElementById("compraItems")?.addEventListener("click", e => {
-  const btn = e.target.closest("[data-ci-del]");
-  if (!btn) return;
-  compraItems.splice(parseInt(btn.dataset.ciDel), 1);
-  if (!compraItems.length) compraItems.push({ prodId: "", qty: 1, precio: "", desc: "" });
-  renderCompraItemsModal();
-});
-
-// Confirmar compra
-document.getElementById("btnConfirmarCompra")?.addEventListener("click", async () => {
-  const provId = document.getElementById("compraProvSelect")?.value;
-  if (!provId) { showToast("Seleccioná un proveedor.", "error"); return; }
-
-  const itemsValidos = compraItems.filter(i => i.prodId && (parseInt(i.qty)||0) > 0);
-  if (!itemsValidos.length) { showToast("Agregá al menos un producto.", "error"); return; }
-
-  const prov   = proveedores[provId]?.nombre || "—";
-  const nota   = document.getElementById("compraNotaInput")?.value.trim();
-  const total  = Math.round(calcTotalCompra());
-  const fecha  = todayKey();
-
-  // Guardar en Firestore
-  const compraRef = doc(collection(db, "compras"));
-  await setDoc(compraRef, {
-    proveedor: prov, provId, nota,
-    items: itemsValidos.map(i => ({ prodId: i.prodId, desc: i.desc, qty: parseInt(i.qty)||1, precio: parseFloat(i.precio)||0 })),
-    total, fecha, ts: new Date().toISOString(),
-    admin: getNombreUsuario()
-  });
-
-  // Actualizar stock de cada producto
-  for (const item of itemsValidos) {
-    const prod = allProducts.find(p => p._id === item.prodId);
-    if (prod && typeof prod.stock === "number") {
-      await updateDoc(doc(db, "productos", item.prodId), {
-        stock: prod.stock + (parseInt(item.qty) || 0)
-      });
-    }
-  }
-
-  registrarLog("compra", `Compra registrada — ${fmt(total)} · ${prov}`);
-  showToast(`Compra registrada ✓ — ${fmt(total)}`, "success");
-  cerrarModalCompra();
-});
 
 // ── Exportar Compras Excel ──
 document.getElementById("btnExportarComprasExcel")?.addEventListener("click", () => {
