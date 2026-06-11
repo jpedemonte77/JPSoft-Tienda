@@ -7329,3 +7329,192 @@ document.querySelectorAll(".modal-overlay").forEach(overlay => {
   });
   observer.observe(overlay, { attributes: true, attributeFilter: ["class"] });
 });
+
+// ============================================================
+//  COMPRAS
+// ============================================================
+let comprasData = [];
+let compraItems = [];
+
+function calcTotalCompra() {
+  return compraItems.reduce((s, item) => s + (parseFloat(item.precio) || 0) * (parseInt(item.qty) || 0), 0);
+}
+
+function renderCompraItemsModal() {
+  const wrap = document.getElementById("compraItems");
+  if (!wrap) return;
+  const provId    = document.getElementById("compraProvSelect")?.value;
+  const provNombre = proveedores[provId]?.nombre;
+  const provProds  = allProducts.filter(p => p.proveedor === provNombre);
+
+  wrap.innerHTML = compraItems.map((item, i) => `
+    <div style="display:grid;grid-template-columns:1fr 80px 100px 28px;gap:6px;align-items:center">
+      <select class="form-select" data-ci-prod="${i}" style="font-size:12px">
+        <option value="">Seleccioná producto…</option>
+        ${provProds.map(p => `<option value="${p._id}" ${item.prodId === p._id ? "selected" : ""}>${p.desc}</option>`).join("")}
+      </select>
+      <input type="number" class="form-input" data-ci-qty="${i}" value="${item.qty || 1}" min="1"
+        placeholder="Cant." style="font-size:12px;text-align:center" />
+      <input type="number" class="form-input" data-ci-precio="${i}" value="${item.precio || ""}"
+        placeholder="$ costo" style="font-size:12px" />
+      <button type="button" data-ci-del="${i}"
+        style="background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;display:flex;align-items:center">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+        </svg>
+      </button>
+    </div>`).join("");
+
+  const total = document.getElementById("compraTotalDisplay");
+  if (total) total.textContent = fmt(Math.round(calcTotalCompra()));
+}
+
+function renderCompras() {
+  const tbody = document.getElementById("comprasTableBody");
+  const empty = document.getElementById("comprasEmptyMsg");
+  if (!tbody) return;
+
+  const hoy    = new Date();
+  const mesIni = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0,10);
+  const hoyKey = hoy.toISOString().slice(0,10);
+  const delMes = comprasData.filter(c => c.fecha >= mesIni && c.fecha <= hoyKey);
+  const totalMes = delMes.reduce((s, c) => s + (c.total || 0), 0);
+  document.getElementById("cmpStatTotal").textContent = fmt(totalMes);
+  document.getElementById("cmpStatCant").textContent  = delMes.length;
+  const ultimo = [...comprasData].sort((a,b) => (b.ts||"").localeCompare(a.ts||""))[0];
+  document.getElementById("cmpStatProv").textContent  = ultimo?.proveedor || "—";
+
+  if (!comprasData.length) {
+    tbody.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  const lista = [...comprasData].sort((a,b) => (b.ts||"").localeCompare(a.ts||""));
+  tbody.innerHTML = lista.map(c => {
+    const [fy,fm,fd] = (c.fecha||"").split("-");
+    const fechaFmt = c.fecha ? `${parseInt(fd)}/${parseInt(fm)}/${fy}` : "—";
+    const hora     = c.ts ? new Date(c.ts).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) : "—";
+    const prods    = (c.items||[]).map(i => `${i.desc}${i.qty>1?` ×${i.qty}`:""}`).join(", ") || "—";
+    const fpBadge  = c.formaPago ? `<span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text2)">${c.formaPago}</span>` : "—";
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${fechaFmt}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${hora}</td>
+      <td><span class="badge ${badgeClass(c.proveedor)}">${c.proveedor||"—"}</span></td>
+      <td style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.nroFactura||"—"}</td>
+      <td style="font-size:12.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${prods}">${prods}</td>
+      <td class="num" style="font-weight:600">${fmt(c.total||0)}</td>
+      <td>${fpBadge}</td>
+      <td style="font-size:12px;color:var(--text2)">${c.admin||"—"}</td>
+    </tr>`;
+  }).join("");
+}
+
+function initComprasListener() {
+  _unsubs.push(onSnapshot(collection(db, "compras"), snap => {
+    comprasData = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+    if (document.getElementById("view-compras")?.classList.contains("active")) renderCompras();
+  }));
+}
+
+function abrirModalCompra() {
+  compraItems = [{ prodId: "", qty: 1, precio: "", desc: "" }];
+  document.getElementById("compraNotaInput").value = "";
+  document.getElementById("compraNroFactura").value = "";
+  document.getElementById("compraFormaPago").value = "Efectivo";
+  const sel = document.getElementById("compraProvSelect");
+  sel.innerHTML = '<option value="">Seleccioná un proveedor…</option>';
+  Object.entries(proveedores).forEach(([id, p]) => {
+    const opt = document.createElement("option");
+    opt.value = id; opt.textContent = p.nombre;
+    sel.appendChild(opt);
+  });
+  renderCompraItemsModal();
+  document.getElementById("modalCompra").classList.remove("hidden");
+}
+
+function cerrarModalCompra() {
+  document.getElementById("modalCompra").classList.add("hidden");
+  compraItems = [];
+}
+
+document.getElementById("btnNuevaCompra")?.addEventListener("click", abrirModalCompra);
+document.getElementById("closeModalCompra")?.addEventListener("click", cerrarModalCompra);
+document.getElementById("btnCancelarCompra")?.addEventListener("click", cerrarModalCompra);
+
+document.getElementById("compraProvSelect")?.addEventListener("change", () => {
+  compraItems = [{ prodId: "", qty: 1, precio: "", desc: "" }];
+  renderCompraItemsModal();
+});
+
+document.getElementById("btnAgregarItemCompra")?.addEventListener("click", () => {
+  compraItems.push({ prodId: "", qty: 1, precio: "", desc: "" });
+  renderCompraItemsModal();
+});
+
+document.getElementById("compraItems")?.addEventListener("change", e => {
+  const iProd   = e.target.dataset.ciProd;
+  const iQty    = e.target.dataset.ciQty;
+  const iPrecio = e.target.dataset.ciPrecio;
+  if (iProd !== undefined) {
+    const p = allProducts.find(x => x._id === e.target.value);
+    compraItems[iProd].prodId = e.target.value;
+    compraItems[iProd].desc   = p?.desc || "";
+    compraItems[iProd].precio = p?.lista || "";
+    renderCompraItemsModal();
+  }
+  if (iQty !== undefined)    { compraItems[iQty].qty       = parseInt(e.target.value) || 1; renderCompraItemsModal(); }
+  if (iPrecio !== undefined) { compraItems[iPrecio].precio = e.target.value;               renderCompraItemsModal(); }
+});
+
+document.getElementById("compraItems")?.addEventListener("click", e => {
+  const btn = e.target.closest("[data-ci-del]");
+  if (!btn) return;
+  compraItems.splice(parseInt(btn.dataset.ciDel), 1);
+  if (!compraItems.length) compraItems.push({ prodId: "", qty: 1, precio: "", desc: "" });
+  renderCompraItemsModal();
+});
+
+document.getElementById("btnConfirmarCompra")?.addEventListener("click", async () => {
+  const provId = document.getElementById("compraProvSelect")?.value;
+  if (!provId) { showToast("Seleccioná un proveedor.", "error"); return; }
+
+  const itemsValidos = compraItems.filter(i => i.prodId && (parseInt(i.qty)||0) > 0);
+  if (!itemsValidos.length) { showToast("Agregá al menos un producto.", "error"); return; }
+
+  const prov       = proveedores[provId]?.nombre || "—";
+  const nota       = document.getElementById("compraNotaInput")?.value.trim();
+  const nroFactura = document.getElementById("compraNroFactura")?.value.trim();
+  const formaPago  = document.getElementById("compraFormaPago")?.value || "Efectivo";
+  const total      = Math.round(calcTotalCompra());
+  const fecha      = todayKey();
+
+  const compraRef = doc(collection(db, "compras"));
+  await setDoc(compraRef, {
+    proveedor: prov, provId, nota, nroFactura, formaPago,
+    items: itemsValidos.map(i => ({
+      prodId: i.prodId, desc: i.desc,
+      qty: parseInt(i.qty)||1,
+      precio: parseFloat(i.precio)||0,
+      subtotal: Math.round((parseFloat(i.precio)||0) * (parseInt(i.qty)||1))
+    })),
+    total, fecha, ts: new Date().toISOString(),
+    admin: getNombreUsuario()
+  });
+
+  for (const item of itemsValidos) {
+    const prod = allProducts.find(p => p._id === item.prodId);
+    if (prod && typeof prod.stock === "number") {
+      await updateDoc(doc(db, "productos", item.prodId), {
+        stock: prod.stock + (parseInt(item.qty) || 0),
+        lista: parseFloat(item.precio) || prod.lista
+      });
+    }
+  }
+
+  registrarLog("compra", `Compra registrada — ${fmt(total)} · ${prov}${nroFactura ? ` · Fact. ${nroFactura}` : ""}`);
+  showToast(`Compra registrada ✓ — ${fmt(total)}`, "success");
+  cerrarModalCompra();
+});
