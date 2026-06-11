@@ -5077,10 +5077,15 @@ function abrirModalCliente(id = null) {
   document.getElementById("clienteLocalidadInput").value   = c?.localidad    || "";
   document.getElementById("btnConfirmarCliente").textContent = id ? "Guardar cambios" : "Guardar cliente";
   document.getElementById("modalCliente").classList.remove("hidden");
+  // Si se abre encima de otro modal, subirle el z-index
+  if (window._abrirClienteDesdePresup || window._abrirClienteDesdeVenta) {
+    document.getElementById("modalCliente").style.zIndex = "400";
+  }
   setTimeout(() => document.getElementById("clienteNombreInput").focus(), 80);
 }
 function cerrarModalCliente() {
   document.getElementById("modalCliente").classList.add("hidden");
+  document.getElementById("modalCliente").style.zIndex = "";
 }
 document.getElementById("btnNuevoCliente")?.addEventListener("click",  () => abrirModalCliente());
 
