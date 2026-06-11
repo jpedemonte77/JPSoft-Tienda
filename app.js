@@ -2460,7 +2460,7 @@ function renderProductosTabla() {
       <td class="num" style="font-size:12px;color:var(--text2)">${p.stockMin ?? "—"}</td>
       <td class="num" style="font-size:12px;color:var(--text2)">${p.stockMax ?? "—"}</td>
       <td style="text-align:center">
-        <span style="font-size:12px">${inactivo ? "❌" : "✅"}</span>
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${inactivo ? 'var(--text3)' : '#22c55e'}"></span>
       </td>
       <td>
         <div style="display:flex;gap:4px;justify-content:flex-end">
