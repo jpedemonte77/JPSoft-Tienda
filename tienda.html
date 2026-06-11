@@ -1331,7 +1331,7 @@
       <span class="modal-title">Confirmar venta <span id="modalVentaNro" style="font-size:12px;font-weight:400;color:var(--text3);font-family:'DM Mono',monospace"></span></span>
       <button class="modal-close" id="closeModalVenta">✕</button>
     </div>
-    <div class="modal-body" style="flex:1;overflow:hidden;padding:10px 16px;display:flex;flex-direction:column;gap:8px;min-height:0">
+    <div class="modal-body" style="overflow:hidden;padding:10px 16px;display:flex;flex-direction:column;gap:8px;min-height:0">
 
       <!-- Ítems del carrito — máximo 40vh con scroll -->
       <div id="ventaCartItems" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow-y:auto;max-height:40vh"></div>
@@ -1363,7 +1363,7 @@
       </div>
 
       <!-- Extras colapsables: Cliente + Nota -->
-      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden">
+      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;flex-shrink:0">
         <div id="ventaExtrasToggle" style="padding:7px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
           <span style="font-size:12px;color:var(--text2)">Cliente / Nota <span style="font-size:11px;color:var(--text3)">(opcional)</span></span>
           <svg id="ventaExtrasChevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text3);transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
