@@ -264,8 +264,8 @@ function getNombreUsuario() {
 let rolActual = "administrador"; // default hasta que se cargue de Firestore
 let nroVentaActual = 0; // se carga desde Firestore al iniciar
 
-const VISTAS_EMPLEADO = ["inicio","venta","caja","notas","clientes","gastos","compras","productos","proveedores","soporte"];
-const VISTAS_ADMIN    = ["inicio","venta","caja","notas","clientes","gastos","compras","productos","proveedores","reportes","historial-precios","actividad","usuarios","soporte","backup"];
+const VISTAS_EMPLEADO = ["inicio","venta","caja","notas","clientes","presupuestos","gastos","compras","productos","proveedores","soporte"];
+const VISTAS_ADMIN    = ["inicio","venta","caja","notas","clientes","presupuestos","gastos","compras","productos","proveedores","reportes","historial-precios","actividad","usuarios","soporte","backup"];
 
 function aplicarRol(rol) {
   rolActual = rol || "empleado";
@@ -509,6 +509,7 @@ function initFirebase() {
 
   // Compras
   initComprasListener();
+  initPresupuestosListener();
 
   // Notas
   initNotasListener();
@@ -590,6 +591,7 @@ document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
     }
     if (view === "clientes")          { renderClientesLista(); setTimeout(() => document.getElementById("clientesLista")?.focus(), 100); }
     if (view === "compras")           renderCompras();
+    if (view === "presupuestos")      renderPresupuestos();
     if (view === "proveedores")       { provFilaActiva = -1; renderProveedores(); setTimeout(() => document.getElementById("proveedoresGrid")?.focus(), 100); }
   });
 });
@@ -7532,3 +7534,304 @@ document.getElementById("btnConfirmarCompra")?.addEventListener("click", async (
   showToast(`Compra registrada ✓ — ${fmt(total)}`, "success");
   cerrarModalCompra();
 });
+
+// ============================================================
+//  PRESUPUESTOS
+// ============================================================
+let presupuestosData = [];
+let presupItemsActuales = [];
+let presupEditId = null;
+
+function calcTotalPresup() {
+  return presupItemsActuales.reduce((s, i) => s + (parseFloat(i.precio)||0) * (parseInt(i.qty)||0), 0);
+}
+
+function renderPresupItems() {
+  const wrap = document.getElementById("presupItems");
+  if (!wrap) return;
+  wrap.innerHTML = presupItemsActuales.map((item, i) => `
+    <div style="display:grid;grid-template-columns:1fr 70px 100px 28px;gap:6px;align-items:center">
+      <select class="form-select" data-pi-prod="${i}" style="font-size:12px">
+        <option value="">Seleccioná producto…</option>
+        ${allProducts.filter(p => p.activo !== false).map(p =>
+          `<option value="${p._id}" ${item.prodId===p._id?"selected":""}>${p.desc}</option>`
+        ).join("")}
+      </select>
+      <input type="number" class="form-input" data-pi-qty="${i}" value="${item.qty||1}" min="1"
+        style="font-size:12px;text-align:center" />
+      <input type="number" class="form-input" data-pi-precio="${i}" value="${item.precio||""}"
+        placeholder="$ precio" style="font-size:12px" />
+      <button type="button" data-pi-del="${i}"
+        style="background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;display:flex;align-items:center">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+        </svg>
+      </button>
+    </div>`).join("");
+  const total = document.getElementById("presupTotalDisplay");
+  if (total) total.textContent = fmt(Math.round(calcTotalPresup()));
+}
+
+function renderPresupuestos() {
+  const tbody = document.getElementById("presupuestosTableBody");
+  const empty = document.getElementById("presupuestosEmpty");
+  if (!tbody) return;
+  const q = (document.getElementById("presupuestosSearch")?.value||"").toLowerCase();
+  const lista = [...presupuestosData]
+    .filter(p => !q || (p.clienteNombre||"").toLowerCase().includes(q) || (p.nro||"").toString().includes(q))
+    .sort((a,b) => (b.ts||"").localeCompare(a.ts||""));
+  if (!lista.length) {
+    tbody.innerHTML = ""; empty.style.display = "block"; return;
+  }
+  empty.style.display = "none";
+  tbody.innerHTML = lista.map(p => {
+    const [fy,fm,fd] = (p.fecha||"").split("-");
+    const fechaFmt = p.fecha ? `${parseInt(fd)}/${parseInt(fm)}/${fy}` : "—";
+    const prods = (p.items||[]).map(i => `${i.desc}${i.qty>1?` ×${i.qty}`:""}`).join(", ")||"—";
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--text2)">#${String(p.nro||0).padStart(4,"0")}</td>
+      <td style="font-size:12px;color:var(--text3)">${fechaFmt}</td>
+      <td style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.clienteNombre||"—"}</td>
+      <td style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${prods}">${prods}</td>
+      <td class="num" style="font-weight:600">${fmt(p.total||0)}</td>
+      <td>
+        <div style="display:flex;gap:4px;justify-content:flex-end">
+          <button class="btn-secondary" style="font-size:11px;padding:4px 7px" onclick="window._imprimirPresupuesto('${p._id}')">PDF</button>
+          <button class="btn-secondary" style="font-size:11px;padding:4px 7px" onclick="window._convertirPresupuestoEnVenta('${p._id}')">→ Venta</button>
+          <button class="btn-secondary" style="font-size:11px;padding:4px 7px" onclick="window._editarPresupuesto('${p._id}')">Editar</button>
+          <button class="btn-danger" style="font-size:11px;padding:4px 6px" onclick="window._eliminarPresupuesto('${p._id}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function initPresupuestosListener() {
+  _unsubs.push(onSnapshot(collection(db, "presupuestos"), snap => {
+    presupuestosData = snap.docs.map(d => ({...d.data(), _id: d.id}));
+    if (document.getElementById("view-presupuestos")?.classList.contains("active")) renderPresupuestos();
+  }));
+}
+
+function abrirModalPresupuesto(id = null, clienteIdInicial = null) {
+  presupEditId = id;
+  presupItemsActuales = id
+    ? [...(presupuestosData.find(p => p._id === id)?.items || []).map(i => ({...i}))]
+    : [{prodId:"", qty:1, precio:"", desc:""}];
+
+  document.getElementById("modalPresupuestoTitulo").textContent = id ? "Editar presupuesto" : "Nuevo presupuesto";
+  document.getElementById("btnGuardarPresupuesto").textContent  = id ? "Guardar cambios" : "Guardar presupuesto";
+  document.getElementById("presupObs").value = id ? (presupuestosData.find(p=>p._id===id)?.obs||"") : "";
+
+  // Popular selector de clientes
+  const sel = document.getElementById("presupClienteSelect");
+  sel.innerHTML = '<option value="">Seleccioná un cliente…</option>';
+  Object.entries(clientesData).forEach(([cid, c]) => {
+    const opt = document.createElement("option");
+    opt.value = cid; opt.textContent = c.nombre;
+    if (id) {
+      const pData = presupuestosData.find(p=>p._id===id);
+      if (pData?.clienteId === cid) opt.selected = true;
+    } else if (clienteIdInicial === cid) {
+      opt.selected = true;
+    }
+    sel.appendChild(opt);
+  });
+
+  renderPresupItems();
+  document.getElementById("modalPresupuesto").classList.remove("hidden");
+}
+
+function cerrarModalPresupuesto() {
+  document.getElementById("modalPresupuesto").classList.add("hidden");
+  presupEditId = null; presupItemsActuales = [];
+}
+
+// Listeners del modal
+document.getElementById("btnNuevoPresupuesto")?.addEventListener("click", () => abrirModalPresupuesto());
+document.getElementById("btnNuevoPresupuestoDesdeClientes")?.addEventListener("click", () => {
+  // Si hay un cliente seleccionado en la tabla de clientes, lo pre-carga
+  const filaActiva = document.querySelector("#clientesLista tr.active");
+  const clienteId  = filaActiva?.dataset?.id || null;
+  navigateTo("presupuestos");
+  setTimeout(() => abrirModalPresupuesto(null, clienteId), 200);
+});
+document.getElementById("closeModalPresupuesto")?.addEventListener("click", cerrarModalPresupuesto);
+document.getElementById("btnCancelarPresupuesto")?.addEventListener("click", cerrarModalPresupuesto);
+document.getElementById("modalPresupuesto")?.addEventListener("click", e => { if (e.target===e.currentTarget) cerrarModalPresupuesto(); });
+
+document.getElementById("btnAgregarItemPresup")?.addEventListener("click", () => {
+  presupItemsActuales.push({prodId:"", qty:1, precio:"", desc:""});
+  renderPresupItems();
+});
+
+document.getElementById("presupItems")?.addEventListener("change", e => {
+  const iProd   = e.target.dataset.piProd;
+  const iQty    = e.target.dataset.piQty;
+  const iPrecio = e.target.dataset.piPrecio;
+  if (iProd !== undefined) {
+    const p = allProducts.find(x => x._id === e.target.value);
+    presupItemsActuales[iProd].prodId = e.target.value;
+    presupItemsActuales[iProd].desc   = p?.desc || "";
+    presupItemsActuales[iProd].precio = p ? getPrecioVenta(p) : "";
+    renderPresupItems();
+  }
+  if (iQty !== undefined)    { presupItemsActuales[iQty].qty       = parseInt(e.target.value)||1; renderPresupItems(); }
+  if (iPrecio !== undefined) { presupItemsActuales[iPrecio].precio = e.target.value;              renderPresupItems(); }
+});
+
+document.getElementById("presupItems")?.addEventListener("click", e => {
+  const btn = e.target.closest("[data-pi-del]");
+  if (!btn) return;
+  presupItemsActuales.splice(parseInt(btn.dataset.piDel), 1);
+  if (!presupItemsActuales.length) presupItemsActuales.push({prodId:"", qty:1, precio:"", desc:""});
+  renderPresupItems();
+});
+
+document.getElementById("presupuestosSearch")?.addEventListener("input", renderPresupuestos);
+
+// Guardar presupuesto
+document.getElementById("btnGuardarPresupuesto")?.addEventListener("click", async () => {
+  const clienteId = document.getElementById("presupClienteSelect").value;
+  if (!clienteId) { showToast("Seleccioná un cliente.", "error"); return; }
+  const itemsValidos = presupItemsActuales.filter(i => i.prodId && (parseInt(i.qty)||0) > 0);
+  if (!itemsValidos.length) { showToast("Agregá al menos un producto.", "error"); return; }
+
+  const clienteNombre = clientesData[clienteId]?.nombre || "—";
+  const obs   = document.getElementById("presupObs").value.trim();
+  const total = Math.round(calcTotalPresup());
+  const fecha = todayKey();
+
+  const data = {
+    clienteId, clienteNombre, obs, total, fecha,
+    ts: new Date().toISOString(),
+    admin: getNombreUsuario(),
+    items: itemsValidos.map(i => ({
+      prodId: i.prodId, desc: i.desc,
+      qty: parseInt(i.qty)||1,
+      precio: parseFloat(i.precio)||0,
+      subtotal: Math.round((parseFloat(i.precio)||0) * (parseInt(i.qty)||1))
+    }))
+  };
+
+  if (presupEditId) {
+    await updateDoc(doc(db, "presupuestos", presupEditId), data);
+    showToast("Presupuesto actualizado ✓", "success");
+  } else {
+    // Generar número correlativo
+    const confRef  = doc(db, "config", "contadores");
+    const confSnap = await getDoc(confRef);
+    const nro      = (confSnap.data()?.nroPresupuesto || 0) + 1;
+    data.nro = nro;
+    await setDoc(doc(collection(db, "presupuestos")), data);
+    await setDoc(confRef, { nroPresupuesto: nro }, { merge: true });
+    showToast(`Presupuesto #${String(nro).padStart(4,"0")} creado ✓`, "success");
+  }
+  registrarLog("presupuesto", `Presupuesto ${presupEditId?"editado":"creado"} — ${fmt(total)} · ${clienteNombre}`);
+  cerrarModalPresupuesto();
+});
+
+// Editar
+window._editarPresupuesto = function(id) { abrirModalPresupuesto(id); };
+
+// Eliminar
+window._eliminarPresupuesto = async function(id) {
+  const p = presupuestosData.find(x => x._id === id);
+  if (!confirm(`¿Eliminar presupuesto #${String(p?.nro||0).padStart(4,"0")} de ${p?.clienteNombre}?\nEsta acción no se puede deshacer.`)) return;
+  await deleteDoc(doc(db, "presupuestos", id));
+  showToast("Presupuesto eliminado.", "success");
+  registrarLog("presupuesto", `Presupuesto #${String(p?.nro||0).padStart(4,"0")} eliminado`);
+};
+
+// Convertir en Venta
+window._convertirPresupuestoEnVenta = function(id) {
+  const p = presupuestosData.find(x => x._id === id);
+  if (!p) return;
+  // Cargar los productos del presupuesto en el carrito de Venta
+  cartItems = [];
+  p.items.forEach(item => {
+    const prod = allProducts.find(x => x._id === item.prodId);
+    if (prod) {
+      cartItems.push({ ...prod, qty: item.qty, precioUnit: item.precio });
+    }
+  });
+  navigateTo("venta");
+  renderCart();
+  showToast(`Presupuesto #${String(p.nro||0).padStart(4,"0")} cargado en Venta ✓`, "success");
+};
+
+// Imprimir PDF
+window._imprimirPresupuesto = async function(id) {
+  const p = presupuestosData.find(x => x._id === id);
+  if (!p) return;
+  const now = new Date().toLocaleDateString("es-AR", {day:"2-digit",month:"2-digit",year:"numeric"});
+  const [fy,fm,fd] = (p.fecha||"").split("-");
+  const fechaFmt = p.fecha ? `${parseInt(fd)}/${parseInt(fm)}/${fy}` : "—";
+  const nroFmt = `#${String(p.nro||0).padStart(4,"0")}`;
+
+  const filas = (p.items||[]).map(i => `
+    <tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:7px 10px">${i.desc||"—"}</td>
+      <td style="padding:7px 10px;text-align:center">${i.qty}</td>
+      <td style="padding:7px 10px;text-align:right">${fmt(i.precio||0)}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600">${fmt(i.subtotal||0)}</td>
+    </tr>`).join("");
+
+  const content = `
+    <div style="font-family:'DM Sans',sans-serif;color:#111;padding:2.5rem;max-width:600px;margin:0 auto">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <div style="font-size:22px;font-weight:700">JPSoft | Tienda</div>
+          <div style="font-size:13px;color:#888;margin-top:2px">Presupuesto ${nroFmt}</div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:#888">
+          <div>Fecha: ${fechaFmt}</div>
+          <div>Generado: ${now}</div>
+        </div>
+      </div>
+      <div style="margin:16px 0;padding:12px 14px;background:#f8f8f8;border-radius:8px">
+        <div style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Cliente</div>
+        <div style="font-size:15px;font-weight:600">${p.clienteNombre||"—"}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px">
+        <thead>
+          <tr style="background:#f0f0f0;font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">
+            <th style="padding:8px 10px;text-align:left;font-weight:500">Producto</th>
+            <th style="padding:8px 10px;text-align:center;font-weight:500">Cant.</th>
+            <th style="padding:8px 10px;text-align:right;font-weight:500">Precio</th>
+            <th style="padding:8px 10px;text-align:right;font-weight:500">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>${filas}</tbody>
+        <tfoot>
+          <tr style="border-top:2px solid #111">
+            <td colspan="3" style="padding:10px;font-weight:600;font-size:14px">TOTAL</td>
+            <td style="padding:10px;text-align:right;font-weight:700;font-size:18px">${fmt(p.total||0)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      ${p.obs ? `<div style="margin-top:12px;padding:10px 14px;background:#fffde7;border-left:3px solid #f9c74f;border-radius:4px;font-size:12px;color:#555">${p.obs}</div>` : ""}
+    </div>`;
+
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;left:-9999px;top:0;width:650px;background:#fff";
+  container.innerHTML = content;
+  document.body.appendChild(container);
+  try {
+    const canvas = await html2canvas(container, {scale:2, useCORS:true, backgroundColor:"#fff"});
+    const {jsPDF} = window.jspdf;
+    const pdf  = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+    const imgW = 210;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, imgW, imgH);
+    pdf.save(`Presupuesto_${nroFmt}_${p.clienteNombre||"cliente"}.pdf`);
+    showToast("PDF generado ✓", "success");
+  } catch(err) {
+    showToast("Error al generar PDF: " + err.message, "error");
+  } finally {
+    document.body.removeChild(container);
+  }
+};
+
+// Inicializar al navegar
