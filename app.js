@@ -3020,7 +3020,7 @@ function renderProveedores() {
     return `<tr class="prov-row" data-id="${id}" data-idx="${idx}" style="cursor:pointer">
       <td style="font-weight:500;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${tdBg}">${p.nombre||"—"}</td>
       <td style="font-size:12px;${tdBg}"><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text2)">${tipo}</span></td>
-      <td style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${tdBg}">${p.categoria||"—"}</td>
+      <td style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${tdBg}">${p.email||"—"}</td>
       <td style="font-size:12px;${tdBg}">${waCell}</td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap;${tdBg}">${p.localidad||"—"}</td>
       <td class="num" style="font-weight:600;${tdBg}">${p.ganancia??0}%</td>
@@ -3219,7 +3219,6 @@ function abrirModalProveedor(id) {
   }
 
   document.getElementById("vf-nombre").value    = p?.nombre    || "";
-  document.getElementById("vf-categoria").value = p?.categoria || "";
   document.getElementById("vf-whatsapp").value  = p?.whatsapp  || "";
   document.getElementById("vf-email").value     = p?.email     || "";
   document.getElementById("vf-direccion").value = p?.direccion || "";
@@ -3256,7 +3255,6 @@ document.getElementById("btnGuardarProveedor").addEventListener("click", async (
   const data = {
     nombre, ganancia, tipo,
     tabaco: false,
-    categoria: document.getElementById("vf-categoria").value.trim(),
     whatsapp:  document.getElementById("vf-whatsapp").value.trim(),
     email:     document.getElementById("vf-email").value.trim(),
     direccion: document.getElementById("vf-direccion").value.trim(),
