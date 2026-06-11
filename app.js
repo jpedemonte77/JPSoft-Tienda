@@ -590,7 +590,11 @@ document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
       setTimeout(() => document.getElementById("gastosTableBody")?.focus(), 100);
     }
     if (view === "clientes")          { renderClientesLista(); setTimeout(() => document.getElementById("clientesLista")?.focus(), 100); }
-    if (view === "compras")           renderCompras();
+    if (view === "compras") {
+      compraFilaActiva = -1;
+      renderCompras();
+      setTimeout(() => document.getElementById("comprasTableBody")?.focus(), 100);
+    }
     if (view === "presupuestos") {
       presupFilaActiva = -1;
       renderPresupuestos();
@@ -7419,6 +7423,8 @@ function renderCompraItemsModal() {
   if (total) total.textContent = fmt(Math.round(calcTotalCompra()));
 }
 
+let compraFilaActiva = -1;
+
 function renderCompras() {
   const tbody = document.getElementById("comprasTableBody");
   const empty = document.getElementById("comprasEmptyMsg");
@@ -7442,24 +7448,39 @@ function renderCompras() {
   empty.style.display = "none";
 
   const lista = [...comprasData].sort((a,b) => (b.ts||"").localeCompare(a.ts||""));
-  tbody.innerHTML = lista.map(c => {
+  tbody.innerHTML = lista.map((c, idx) => {
     const [fy,fm,fd] = (c.fecha||"").split("-");
     const fechaFmt = c.fecha ? `${parseInt(fd)}/${parseInt(fm)}/${fy}` : "—";
     const hora     = c.ts ? new Date(c.ts).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) : "—";
     const prods    = (c.items||[]).map(i => `${i.desc}${i.qty>1?` ×${i.qty}`:""}`).join(", ") || "—";
     const fpBadge  = c.formaPago ? `<span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text2)">${c.formaPago}</span>` : "—";
-    return `<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${fechaFmt}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${hora}</td>
-      <td><span class="badge ${badgeClass(c.proveedor)}">${c.proveedor||"—"}</span></td>
-      <td style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.nroFactura||"—"}</td>
-      <td style="font-size:12.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${prods}">${prods}</td>
-      <td class="num" style="font-weight:600">${fmt(c.total||0)}</td>
-      <td>${fpBadge}</td>
-      <td style="font-size:12px;color:var(--text2)">${c.admin||"—"}</td>
+    const tdBg = compraFilaActiva === idx ? "background:var(--bg3)" : "";
+    return `<tr class="compra-row" data-idx="${idx}">
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);${tdBg}">${fechaFmt}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);${tdBg}">${hora}</td>
+      <td style="${tdBg}"><span class="badge ${badgeClass(c.proveedor)}">${c.proveedor||"—"}</span></td>
+      <td style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${tdBg}">${c.nroFactura||"—"}</td>
+      <td style="font-size:12.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${tdBg}" title="${prods}">${prods}</td>
+      <td class="num" style="font-weight:600;${tdBg}">${fmt(c.total||0)}</td>
+      <td style="${tdBg}">${fpBadge}</td>
+      <td style="font-size:12px;color:var(--text2);${tdBg}">${c.admin||"—"}</td>
     </tr>`;
   }).join("");
 }
+
+// Navegación con teclado en Compras
+document.getElementById("comprasTableBody")?.addEventListener("keydown", e => {
+  if (["ArrowDown","ArrowUp","Escape"].indexOf(e.key) === -1) return;
+  e.preventDefault(); e.stopPropagation();
+  const lista = [...comprasData].sort((a,b) => (b.ts||"").localeCompare(a.ts||""));
+  if (!lista.length) return;
+  if (e.key === "ArrowDown")  compraFilaActiva = Math.min(compraFilaActiva + 1, lista.length - 1);
+  else if (e.key === "ArrowUp") compraFilaActiva = Math.max(compraFilaActiva - 1, 0);
+  else if (e.key === "Escape")  compraFilaActiva = -1;
+  renderCompras();
+  document.querySelector(`.compra-row[data-idx="${compraFilaActiva}"]`)?.scrollIntoView({ block:"nearest" });
+  requestAnimationFrame(() => document.getElementById("comprasTableBody")?.focus());
+});
 
 function initComprasListener() {
   _unsubs.push(onSnapshot(collection(db, "compras"), snap => {
