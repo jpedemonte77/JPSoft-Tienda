@@ -836,9 +836,13 @@ function renderProductosVenta() {
 
 // ── Render carrito lateral (nueva vista Venta) ──
 function renderCartLateral() {
-  const keys    = Object.keys(cart);
-  const total   = keys.reduce((s, k) => s + Math.round(getPrecioVenta(cart[k].product)) * cart[k].qty, 0);
-  const totalU  = keys.reduce((s, k) => s + (cart[k]?.qty || 0), 0);
+  const keys   = Object.keys(cart);
+  const total  = keys.reduce((s, k) => {
+    const item = cart[k];
+    const pv   = item.precioCombo != null ? item.precioCombo : Math.round(getPrecioVenta(item.product));
+    return s + pv * item.qty;
+  }, 0);
+  const totalU = keys.reduce((s, k) => s + (cart[k]?.qty || 0), 0);
 
   const lista   = document.getElementById("ventaCartLista");
   const vacio   = document.getElementById("ventaCartVacio");
@@ -866,11 +870,14 @@ function renderCartLateral() {
 
   lista.innerHTML = keys.map(k => {
     const { product: p, qty } = cart[k];
-    const pv  = Math.round(getPrecioVenta(p));
+    const pv  = cart[k].precioCombo != null ? cart[k].precioCombo : Math.round(getPrecioVenta(p));
     const sub = pv * qty;
+    const esCombo = cart[k].precioCombo != null;
     return `<div style="padding:10px 14px;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px">
-        <div style="font-size:13px;font-weight:500;color:var(--text1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.desc || ""}</div>
+        <div style="font-size:13px;font-weight:500;color:var(--text1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${p.desc || ""}${esCombo ? ` <span style="font-size:10px;padding:1px 6px;border-radius:8px;background:#EEEDFE;color:#3C3489;font-weight:600">COMBO</span>` : ""}
+        </div>
         <div style="font-size:13px;font-weight:600;color:var(--text1);flex-shrink:0">${fmt(sub)}</div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between">
@@ -1672,14 +1679,23 @@ async function confirmarVentaFinal() {
   // 1. Capturar todos los datos ANTES de limpiar el carrito
   const items = keys.map(k => {
     const { product: p, qty } = cart[k];
-    return { desc: p.desc, qty, precioUnit: Math.round(getPrecioVenta(p)), subtotal: Math.round(getPrecioVenta(p) * qty), proveedor: p.proveedor };
+    const pv = cart[k].precioCombo != null ? cart[k].precioCombo : Math.round(getPrecioVenta(p));
+    return { desc: p.desc, qty, precioUnit: pv, subtotal: Math.round(pv * qty), proveedor: p.proveedor, esCombo: p.esCombo||false };
   });
 
   const stockUpdates = {};
   keys.forEach(k => {
     const { product: p, qty } = cart[k];
-    if (typeof p.stock === "number") {
-      stockUpdates[p._id] = Math.max(0, p.stock - qty);
+    if (p.esCombo && p.itemsCombo) {
+      // Descontar stock de cada producto individual del combo
+      p.itemsCombo.forEach(item => {
+        const prod = allProducts.find(x => x._id === item.prodId);
+        if (prod && typeof prod.stock === "number") {
+          stockUpdates[prod._id] = Math.max(0, (stockUpdates[prod._id] ?? prod.stock) - (item.qty||1) * qty);
+        }
+      });
+    } else if (typeof p.stock === "number") {
+      stockUpdates[p._id] = Math.max(0, (stockUpdates[p._id] ?? p.stock) - qty);
     }
   });
 
@@ -8138,13 +8154,13 @@ window._cargarComboEnVenta = function(id) {
     return;
   }
 
-  // Agregar solo los productos individuales al carrito
-  (c.items||[]).forEach(item => {
-    const p = allProducts.find(x => x._id === item.prodId);
-    if (!p) return;
-    if (cart[p._id]) cart[p._id].qty += (item.qty||1);
-    else cart[p._id] = { product: p, qty: item.qty||1 };
-  });
+  // Agregar el combo como una sola línea con precio especial
+  const comboKey = `combo_${id}_${Date.now()}`;
+  cart[comboKey] = {
+    product: { _id: comboKey, desc: c.nombre, esCombo: true, comboId: id, itemsCombo: c.items },
+    qty: 1,
+    precioCombo: c.precio
+  };
 
   document.getElementById("modalSelectorCombo").classList.add("hidden");
   renderCartLateral();
