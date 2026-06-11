@@ -5010,11 +5010,13 @@ document.getElementById("clientesLista")?.addEventListener("keydown", e => {
   if (e.key === "ArrowDown") {
     e.preventDefault();
     clienteFilaActiva = Math.min(clienteFilaActiva + 1, clientes.length - 1);
+    window._clienteActivoId = clientes[clienteFilaActiva]?.[0] || null;
     renderClientesLista();
     document.querySelector(`.cliente-row[data-idx="${clienteFilaActiva}"]`)?.scrollIntoView({ block: "nearest" });
   } else if (e.key === "ArrowUp") {
     e.preventDefault();
     clienteFilaActiva = Math.max(clienteFilaActiva - 1, 0);
+    window._clienteActivoId = clientes[clienteFilaActiva]?.[0] || null;
     renderClientesLista();
     document.querySelector(`.cliente-row[data-idx="${clienteFilaActiva}"]`)?.scrollIntoView({ block: "nearest" });
   } else if (e.key === "Enter" && clienteFilaActiva >= 0) {
@@ -5081,6 +5083,24 @@ function cerrarModalCliente() {
   document.getElementById("modalCliente").classList.add("hidden");
 }
 document.getElementById("btnNuevoCliente")?.addEventListener("click",  () => abrirModalCliente());
+
+// Cuando se guarda un cliente nuevo desde el modal de presupuesto, actualizar el select
+window._onClienteGuardado = function(id) {
+  if (window._abrirClienteDesdePresup) {
+    window._abrirClienteDesdePresup = false;
+    // Re-popular el select y seleccionar el nuevo cliente
+    const sel = document.getElementById("presupClienteSelect");
+    if (sel) {
+      sel.innerHTML = '<option value="">Seleccioná un cliente…</option>';
+      Object.entries(clientesData).forEach(([cid, c]) => {
+        const opt = document.createElement("option");
+        opt.value = cid; opt.textContent = c.nombre;
+        if (cid === id) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+  }
+};
 
 // Enter para guardar, Escape para cancelar en el modal de cliente
 document.getElementById("modalCliente")?.addEventListener("keydown", e => {
@@ -5194,6 +5214,10 @@ document.getElementById("btnConfirmarCliente")?.addEventListener("click", async 
           sel.dispatchEvent(new Event("change"));
         }
       }, 500);
+    }
+    // Si fue creado desde el modal de presupuesto
+    if (window._abrirClienteDesdePresup) {
+      setTimeout(() => window._onClienteGuardado?.(nuevoRef.id), 500);
     }
   }
   cerrarModalCliente();
@@ -7651,15 +7675,18 @@ function cerrarModalPresupuesto() {
 // Listeners del modal
 document.getElementById("btnNuevoPresupuesto")?.addEventListener("click", () => abrirModalPresupuesto());
 document.getElementById("btnNuevoPresupuestoDesdeClientes")?.addEventListener("click", () => {
-  // Si hay un cliente seleccionado en la tabla de clientes, lo pre-carga
-  const filaActiva = document.querySelector("#clientesLista tr.active");
-  const clienteId  = filaActiva?.dataset?.id || null;
-  navigateTo("presupuestos");
-  setTimeout(() => abrirModalPresupuesto(null, clienteId), 200);
+  document.querySelector('[data-view="presupuestos"]')?.click();
+  setTimeout(() => abrirModalPresupuesto(null, window._clienteActivoId || null), 200);
 });
 document.getElementById("closeModalPresupuesto")?.addEventListener("click", cerrarModalPresupuesto);
 document.getElementById("btnCancelarPresupuesto")?.addEventListener("click", cerrarModalPresupuesto);
 document.getElementById("modalPresupuesto")?.addEventListener("click", e => { if (e.target===e.currentTarget) cerrarModalPresupuesto(); });
+
+// + Nuevo cliente desde modal presupuesto
+document.getElementById("btnNuevoClientePresup")?.addEventListener("click", () => {
+  window._abrirClienteDesdePresup = true;
+  abrirModalCliente();
+});
 
 document.getElementById("btnAgregarItemPresup")?.addEventListener("click", () => {
   presupItemsActuales.push({prodId:"", qty:1, precio:"", desc:""});
@@ -7748,16 +7775,14 @@ window._eliminarPresupuesto = async function(id) {
 window._convertirPresupuestoEnVenta = function(id) {
   const p = presupuestosData.find(x => x._id === id);
   if (!p) return;
-  // Cargar los productos del presupuesto en el carrito de Venta
-  cartItems = [];
+  // Limpiar carrito y cargar productos del presupuesto
+  Object.keys(cart).forEach(k => delete cart[k]);
   p.items.forEach(item => {
     const prod = allProducts.find(x => x._id === item.prodId);
-    if (prod) {
-      cartItems.push({ ...prod, qty: item.qty, precioUnit: item.precio });
-    }
+    if (prod) cart[prod._id] = { product: prod, qty: item.qty };
   });
-  navigateTo("venta");
-  renderCart();
+  document.querySelector('[data-view="venta"]')?.click();
+  renderCartLateral();
   showToast(`Presupuesto #${String(p.nro||0).padStart(4,"0")} cargado en Venta ✓`, "success");
 };
 
