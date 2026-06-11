@@ -762,10 +762,16 @@
     <div class="view" id="view-proveedores">
       <div class="view-header">
         <div></div>
-        <button class="btn-primary" id="btnNuevoProveedor">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Nuevo proveedor
-        </button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-primary" id="btnNuevoProveedor">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo proveedor
+          </button>
+          <button class="btn-secondary" id="btnExportarProveedoresExcel">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Exportar Proveedores
+          </button>
+        </div>
       </div>
 
       <!-- Panel márgenes globales -->
@@ -1504,39 +1510,74 @@
      MODAL: PROVEEDOR (nuevo / editar)
 ══════════════════════════════ -->
 <div class="modal-overlay hidden" id="modalProveedor">
-  <div class="modal">
+  <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <span class="modal-title" id="modalProveedorTitulo">Nuevo proveedor</span>
       <button class="modal-close" id="closeModalProveedor">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Nombre del proveedor</label>
+    <div class="modal-body" style="padding:10px 16px">
+
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label" style="margin-bottom:3px">Nombre del proveedor <span style="color:var(--danger)">*</span></label>
         <input type="text" class="form-input" id="vf-nombre" placeholder="Ej: Refrescos SA" />
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Tipo de proveedor</label>
-          <select class="form-select" id="vf-tipo">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="margin-bottom:3px">Tipo de proveedor</label>
+          <select class="form-select" id="vf-tipo" style="width:100%">
             <option value="general">General</option>
             <option value="tabaco">Tabaco</option>
             <option value="cigarrillos">Cigarrillo</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Categoría (opcional)</label>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="margin-bottom:3px">Categoría <span style="font-weight:400;color:var(--text3)">(opcional)</span></label>
           <input type="text" class="form-input" id="vf-categoria" placeholder="Ej: Bebidas" />
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Margen de ganancia (%)</label>
+
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label" style="margin-bottom:3px">Margen de ganancia (%)</label>
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="number" class="form-input" id="vf-ganancia" placeholder="50" min="0" max="999" />
+          <input type="number" class="form-input" id="vf-ganancia" placeholder="50" min="0" max="999" style="flex:1" />
           <span style="font-size:12px;color:var(--text3);white-space:nowrap" id="vf-ganancia-hint">Se pre-carga según el tipo</span>
         </div>
       </div>
+
+      <div style="border-top:1px solid var(--border2);margin:10px 0 8px;padding-top:8px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Datos de contacto</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="margin-bottom:3px">WhatsApp</label>
+          <input type="tel" class="form-input" id="vf-whatsapp" placeholder="Ej: 3415551234" maxlength="20" />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="margin-bottom:3px">Email</label>
+          <input type="email" class="form-input" id="vf-email" placeholder="Ej: ventas@proveedor.com" maxlength="80" />
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="form-group" style="margin-bottom:0;grid-column:1/3">
+          <label class="form-label" style="margin-bottom:3px">Dirección</label>
+          <input type="text" class="form-input" id="vf-direccion" placeholder="Ej: San Martín 1234" maxlength="100" />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="margin-bottom:3px">CP</label>
+          <input type="text" class="form-input" id="vf-cp" placeholder="2000" maxlength="10" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:8px;margin-bottom:0">
+        <label class="form-label" style="margin-bottom:3px">Localidad</label>
+        <input type="text" class="form-input" id="vf-localidad" placeholder="Ej: Rosario" maxlength="60" />
+      </div>
+
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="padding:8px 16px">
       <button class="btn-danger hidden" id="btnEliminarProveedor">Eliminar</button>
       <div style="display:flex;gap:8px">
         <button class="btn-secondary" id="btnCancelarProveedor">Cancelar</button>
