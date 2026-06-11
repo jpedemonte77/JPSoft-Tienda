@@ -7693,6 +7693,13 @@ document.getElementById("btnNuevoPresupuestoDesdeClientes")?.addEventListener("c
 document.getElementById("closeModalPresupuesto")?.addEventListener("click", cerrarModalPresupuesto);
 document.getElementById("btnCancelarPresupuesto")?.addEventListener("click", cerrarModalPresupuesto);
 document.getElementById("modalPresupuesto")?.addEventListener("click", e => { if (e.target===e.currentTarget) cerrarModalPresupuesto(); });
+document.getElementById("modalPresupuesto")?.addEventListener("keydown", e => {
+  if (e.key === "Escape") { e.preventDefault(); cerrarModalPresupuesto(); }
+  if (e.key === "Enter" && e.target.tagName !== "SELECT" && e.target.tagName !== "TEXTAREA") {
+    e.preventDefault();
+    document.getElementById("btnGuardarPresupuesto")?.click();
+  }
+});
 
 // + Nuevo cliente desde modal presupuesto
 document.getElementById("btnNuevoClientePresup")?.addEventListener("click", () => {
