@@ -1361,7 +1361,7 @@
 
       <!-- Métodos de pago -->
       <div style="margin-bottom:14px">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">Método de pago</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">Forma de pago</div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px" id="pagoGrid">
           <button class="pago-chip selected-efectivo" data-metodo="efectivo" style="padding:10px 8px;font-size:14px;text-align:center">Efectivo</button>
           <button class="pago-chip" data-metodo="mp" style="padding:10px 8px;font-size:14px;text-align:center">Mercado Pago</button>
@@ -1899,10 +1899,13 @@
           <select class="form-select" id="compraFormaPago" style="width:100%">
             <option value="Efectivo">Efectivo</option>
             <option value="Transferencia">Transferencia</option>
-            <option value="Cheque">Cheque</option>
-            <option value="Cuenta corriente">Cuenta corriente</option>
             <option value="Débito">Débito</option>
             <option value="Crédito">Crédito</option>
+            <option value="QR">QR</option>
+            <option value="Billetera virtual">Billetera virtual</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Depósito">Depósito</option>
+            <option value="Cuenta corriente">Cuenta corriente</option>
             <option value="Otro">Otro</option>
           </select>
         </div>
