@@ -131,16 +131,7 @@ let prodEditId     = null;
 let provEditId     = null;
 let soloConAlerta  = false;
 let soloActivos    = false;
-let filaSeleccionada = -1;
-
-// Modos de visualización
-let modoActual        = "avanzado";
-let opcionalesActivos = [];
-
-// Secciones por modo
-const SECCIONES_FIJAS      = ["inicio","venta","caja","productos","proveedores","clientes","configuracion","soporte","backup"];
-const SECCIONES_OPCIONALES = ["gastos","combos","compras","presupuestos","notas","reportes","historial-precios","actividad"];
-const SECCIONES_AVANZADO   = ["inicio","venta","caja","gastos","productos","combos","proveedores","compras","clientes","presupuestos","notas","reportes","historial-precios","actividad","configuracion","soporte","backup"];
+let filaSeleccionada = -1; // índice de fila seleccionada con teclado
 
 // Carrito
 const cart   = {};
@@ -274,8 +265,8 @@ function getNombreUsuario() {
 let rolActual = "administrador"; // default hasta que se cargue de Firestore
 let nroVentaActual = 0; // se carga desde Firestore al iniciar
 
-const VISTAS_EMPLEADO = ["inicio","venta","caja","notas","clientes","presupuestos","gastos","compras","productos","combos","proveedores","configuracion","soporte"];
-const VISTAS_ADMIN    = ["inicio","venta","caja","notas","clientes","presupuestos","gastos","compras","productos","combos","proveedores","reportes","historial-precios","actividad","configuracion","soporte","backup"];
+const VISTAS_EMPLEADO = ["inicio","venta","caja","notas","clientes","presupuestos","gastos","compras","productos","combos","proveedores","soporte"];
+const VISTAS_ADMIN    = ["inicio","venta","caja","notas","clientes","presupuestos","gastos","compras","productos","combos","proveedores","reportes","historial-precios","actividad","usuarios","soporte","backup"];
 
 function aplicarRol(rol) {
   rolActual = rol || "empleado";
@@ -346,6 +337,55 @@ async function loginOffline(email, password) {
 // ============================================================
 //  AUTH
 // ============================================================
+// ── Modos de visualización ──
+const SECCIONES_FIJAS      = ["inicio","venta","caja","productos","proveedores","clientes","usuarios","soporte","backup"];
+const SECCIONES_OPCIONALES = ["gastos","combos","compras","presupuestos","notas","reportes","historial-precios","actividad"];
+const SECCIONES_AVANZADO   = ["inicio","venta","caja","gastos","productos","combos","proveedores","compras","clientes","presupuestos","notas","reportes","historial-precios","actividad","usuarios","soporte","backup"];
+var modoActual        = "avanzado";
+var opcionalesActivos = [];
+
+function aplicarModo() {
+  var visibles;
+  if (modoActual === "basico") visibles = SECCIONES_FIJAS.slice();
+  else if (modoActual === "avanzado") visibles = SECCIONES_AVANZADO.slice();
+  else visibles = SECCIONES_AVANZADO.filter(function(s) {
+    return SECCIONES_FIJAS.indexOf(s) >= 0 || opcionalesActivos.indexOf(s) >= 0;
+  });
+  var nav = document.querySelector(".sidebar-nav");
+  if (!nav) return;
+  nav.querySelectorAll("[data-view]").forEach(function(btn) { btn.style.display = "none"; });
+  visibles.forEach(function(view) {
+    var btn = nav.querySelector('[data-view="' + view + '"]');
+    if (btn) { btn.style.display = ""; nav.appendChild(btn); }
+  });
+}
+
+function carregarModoDesdeStorage() {
+  var saved = localStorage.getItem("jpsoft_modo");
+  if (saved) {
+    try {
+      var d = JSON.parse(saved);
+      modoActual        = d.modo       || "avanzado";
+      opcionalesActivos = d.opcionales || [];
+    } catch(e) {}
+  }
+  aplicarModo();
+}
+
+async function cargarModoInicial() {
+  carregarModoDesdeStorage();
+  try {
+    var snap = await getDoc(doc(db, "config", "modo"));
+    if (snap.exists()) {
+      var d = snap.data();
+      modoActual        = d.modo       || "avanzado";
+      opcionalesActivos = d.opcionales || [];
+      localStorage.setItem("jpsoft_modo", JSON.stringify({ modo: modoActual, opcionales: opcionalesActivos }));
+      aplicarModo();
+    }
+  } catch(e) {}
+}
+
 async function mostrarApp(email, uid = null) {
   // Mostrar la app inmediatamente sin esperar Firestore
   document.getElementById("login-screen").classList.add("hidden");
@@ -392,20 +432,8 @@ async function mostrarApp(email, uid = null) {
   }, 600);
 }
 
-// Aplicar modo guardado inmediatamente al cargar la página (antes del login)
-(function() {
-  const saved = localStorage.getItem("jpsoft_modo");
-  if (saved) {
-    try {
-      const d = JSON.parse(saved);
-      modoActual        = d.modo       || "avanzado";
-      opcionalesActivos = d.opcionales || [];
-    } catch(e) {}
-  }
-  aplicarModo();
-})();
-
 onAuthStateChanged(auth, user => {
+  carregarModoDesdeStorage();
   if (user) {
     mostrarApp(user.email, user.uid);
   } else if (!estaOnline) {
@@ -573,7 +601,6 @@ function initFirebase() {
   // Fechas por defecto reportes
   if (typeof setDefaultDates === "function") setDefaultDates();
   if (typeof renderUsuarios === "function") renderUsuarios();
-  initCfgModos();
 }
 
 function rebuildGananciaMap() {
@@ -586,7 +613,7 @@ function rebuildGananciaMap() {
 // ============================================================
 //  NAVEGACIÓN
 // ============================================================
-const VIEWS = { inicio: "Inicio", venta: "Venta", caja: "Caja", notas: "Notas", clientes: "Clientes", presupuestos: "Presupuestos", gastos: "Gastos", compras: "Compras", productos: "Productos", combos: "Combos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial", actividad: "Actividad", configuracion: "Configuración", soporte: "Soporte", backup: "Backup" };
+const VIEWS = { inicio: "Inicio", venta: "Venta", caja: "Caja", notas: "Notas", clientes: "Clientes", presupuestos: "Presupuestos", gastos: "Gastos", compras: "Compras", productos: "Productos", combos: "Combos", proveedores: "Proveedores", reportes: "Reportes", "historial-precios": "Historial", actividad: "Actividad", usuarios: "Usuarios", soporte: "Soporte", backup: "Backup" };
 
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -602,7 +629,7 @@ document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
     // Renders específicos por vista
     if (view === "inicio")            renderInicio();
     if (view === "notas")             renderNotas();
-    if (view === "configuracion")     { renderUsuarios(); initCfgModos(); }
+    if (view === "usuarios")          renderUsuarios();
     if (view === "historial-precios") { renderHistorialPrecios(); renderHistorialVentas(); }
     if (view === "actividad")         renderActividad();
     if (view === "gastos") {
@@ -6801,7 +6828,7 @@ function renderUsuarios() {
 function initUsuariosListener() {
   _unsubs.push(onSnapshot(collection(db, "usuarios"), snap => {
     usuariosData = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
-    if (document.getElementById("view-configuracion")?.classList.contains("active")) renderUsuarios();
+    if (document.getElementById("view-usuarios")?.classList.contains("active")) renderUsuarios();
   }));
 }
 
@@ -8296,154 +8323,3 @@ window._cargarComboEnVenta = function(id) {
   renderCartLateral();
   showToast(`Combo "${c.nombre}" cargado · ${fmt(c.precio)} ✓`, "success");
 };
-
-// ============================================================
-//  CONFIGURACIÓN — MODOS DE VISUALIZACIÓN
-// ============================================================
-function aplicarModo() {
-  let visibles = [];
-  if (modoActual === "basico")        visibles = [...SECCIONES_FIJAS];
-  else if (modoActual === "avanzado") visibles = [...SECCIONES_AVANZADO];
-  else {
-    visibles = SECCIONES_AVANZADO.filter(s =>
-      SECCIONES_FIJAS.includes(s) || opcionalesActivos.includes(s)
-    );
-  }
-
-  const nav = document.querySelector(".sidebar-nav");
-  if (!nav) return;
-
-  // Ocultar todos primero
-  nav.querySelectorAll("[data-view]").forEach(btn => btn.style.display = "none");
-
-  // Reordenar y mostrar en el orden exacto de visibles
-  visibles.forEach(view => {
-    const btn = nav.querySelector(`[data-view="${view}"]`);
-    if (btn) {
-      btn.style.display = "";
-      nav.appendChild(btn);
-    }
-  });
-}
-
-// Tabs de Configuración
-document.querySelectorAll(".cfg-tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".cfg-tab").forEach(t => {
-      t.style.borderBottomColor = "transparent";
-      t.style.color = "var(--text2)";
-      t.style.fontWeight = "400";
-    });
-    tab.style.borderBottomColor = "var(--accent)";
-    tab.style.color = "var(--text1)";
-    tab.style.fontWeight = "500";
-    const which = tab.dataset.tab;
-    document.getElementById("cfgPanelUsuarios").style.display = which === "usuarios" ? "" : "none";
-    document.getElementById("cfgPanelModos").style.display    = which === "modos"    ? "" : "none";
-  });
-});
-
-function initCfgModos() {
-  // Cargar modo guardado
-  const saved = localStorage.getItem("jpsoft_modo");
-  if (saved) {
-    try {
-      const d = JSON.parse(saved);
-      modoActual        = d.modo        || "avanzado";
-      opcionalesActivos = d.opcionales  || [];
-    } catch(e) {}
-  }
-  renderCfgModos();
-}
-
-function renderCfgModos() {
-  // Actualizar cards
-  document.querySelectorAll(".modo-card").forEach(card => {
-    const activo = card.dataset.modo === modoActual;
-    card.style.border = activo ? `2px solid var(--accent)` : `1px solid var(--border)`;
-    const radio = card.querySelector(".modo-radio");
-    if (activo) {
-      radio.style.background = "var(--accent)";
-      radio.style.border     = "none";
-      radio.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`;
-    } else {
-      radio.style.background = "transparent";
-      radio.style.border     = "1px solid var(--border2)";
-      radio.innerHTML        = "";
-    }
-  });
-
-  // Panel opcionales
-  const wrap = document.getElementById("cfgOpcionalesWrap");
-  if (wrap) {
-    const esPersonalizado = modoActual === "personalizado";
-    wrap.style.opacity       = esPersonalizado ? "1"    : "0.4";
-    wrap.style.pointerEvents = esPersonalizado ? "auto" : "none";
-  }
-
-  // Actualizar toggles
-  document.querySelectorAll(".opc-item").forEach(item => {
-    const sec    = item.dataset.sec;
-    const activo = opcionalesActivos.includes(sec);
-    const tog    = item.querySelector(".opc-toggle");
-    const dot    = tog?.querySelector("div");
-    if (tog) tog.style.background = activo ? "var(--accent)" : "var(--surface2)";
-    if (dot) {
-      dot.style.left       = activo ? "auto"         : "2px";
-      dot.style.right      = activo ? "2px"          : "auto";
-      dot.style.background = activo ? "#fff"         : "var(--text3)";
-    }
-  });
-}
-
-// Click en card de modo
-document.querySelectorAll(".modo-card").forEach(card => {
-  card.addEventListener("click", () => {
-    modoActual = card.dataset.modo;
-    renderCfgModos();
-  });
-});
-
-// Click en toggle de sección opcional
-document.getElementById("cfgOpcionalesWrap")?.addEventListener("click", e => {
-  const item = e.target.closest(".opc-item");
-  if (!item) return;
-  const sec = item.dataset.sec;
-  const idx = opcionalesActivos.indexOf(sec);
-  if (idx >= 0) opcionalesActivos.splice(idx, 1);
-  else opcionalesActivos.push(sec);
-  renderCfgModos();
-});
-
-// Guardar modo
-document.getElementById("btnGuardarModo")?.addEventListener("click", async () => {
-  localStorage.setItem("jpsoft_modo", JSON.stringify({ modo: modoActual, opcionales: opcionalesActivos }));
-  // Guardar también en Firestore para persistencia
-  try { await setDoc(doc(db, "config", "modo"), { modo: modoActual, opcionales: opcionalesActivos }, { merge: true }); } catch(e) {}
-  aplicarModo();
-  showToast("Modo actualizado ✓", "success");
-  registrarLog("config", `Modo de visualización cambiado a: ${modoActual}`);
-});
-
-// Cargar modo al iniciar
-async function cargarModoInicial() {
-  const saved = localStorage.getItem("jpsoft_modo");
-  if (saved) {
-    try {
-      const d = JSON.parse(saved);
-      modoActual        = d.modo       || "avanzado";
-      opcionalesActivos = d.opcionales || [];
-    } catch(e) {}
-  }
-  aplicarModo();
-  try {
-    const snap = await getDoc(doc(db, "config", "modo"));
-    if (snap.exists()) {
-      const d = snap.data();
-      modoActual        = d.modo       || "avanzado";
-      opcionalesActivos = d.opcionales || [];
-      localStorage.setItem("jpsoft_modo", JSON.stringify({ modo: modoActual, opcionales: opcionalesActivos }));
-      aplicarModo();
-    }
-  } catch(e) {}
-}
