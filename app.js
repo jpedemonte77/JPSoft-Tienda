@@ -131,7 +131,11 @@ let prodEditId     = null;
 let provEditId     = null;
 let soloConAlerta  = false;
 let soloActivos    = false;
-let filaSeleccionada = -1; // índice de fila seleccionada con teclado
+let filaSeleccionada = -1;
+
+// Modos de visualización
+let modoActual        = "avanzado";
+let opcionalesActivos = [];
 
 // Carrito
 const cart   = {};
@@ -8291,12 +8295,9 @@ window._cargarComboEnVenta = function(id) {
 // ============================================================
 //  CONFIGURACIÓN — MODOS DE VISUALIZACIÓN
 // ============================================================
-const SECCIONES_FIJAS    = ["inicio","venta","caja","productos","proveedores","clientes","configuracion","soporte","backup"];
+const SECCIONES_FIJAS      = ["inicio","venta","caja","productos","proveedores","clientes","configuracion","soporte","backup"];
 const SECCIONES_OPCIONALES = ["gastos","combos","compras","presupuestos","notas","reportes","historial-precios","actividad"];
-const SECCIONES_AVANZADO = ["inicio","venta","caja","gastos","productos","combos","proveedores","compras","clientes","presupuestos","notas","reportes","historial-precios","actividad","configuracion","soporte","backup"];
-
-let modoActual        = "avanzado";
-let opcionalesActivos = [];
+const SECCIONES_AVANZADO   = ["inicio","venta","caja","gastos","productos","combos","proveedores","compras","clientes","presupuestos","notas","reportes","historial-precios","actividad","configuracion","soporte","backup"];
 
 function aplicarModo() {
   let visibles = [];
