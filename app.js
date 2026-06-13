@@ -8328,6 +8328,8 @@ window._cargarComboEnVenta = function(id) {
 async function cargarModoInicial() {
   // Las variables ya tienen el valor de localStorage — solo aplicar y sincronizar con Firestore
   aplicarModo();
+  // Solo sincronizar con Firestore si hay conexión
+  if (!estaOnline) return;
   try {
     var snap = await getDoc(doc(db, "config", "modo"));
     if (snap.exists()) {
