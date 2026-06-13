@@ -108,8 +108,12 @@ const TIPO_LABEL = { general: "General", tabaco: "Tabaco 🚬", cigarrillos: "Ci
 const TIPO_BADGE = { general: "badge-neutral", tabaco: "b-tabaco", cigarrillos: "b-tabaco" };
 
 // ── Modos de visualización ──
-var modoActual        = "avanzado";
-var opcionalesActivos = [];
+// Inicializar modo desde localStorage inmediatamente al cargar el script
+var _modoSaved = (function() {
+  try { return JSON.parse(localStorage.getItem("jpsoft_modo") || "{}"); } catch(e) { return {}; }
+})();
+var modoActual        = _modoSaved.modo       || "avanzado";
+var opcionalesActivos = _modoSaved.opcionales || [];
 
 let allProducts   = [];
 let proveedores   = {};   // { id: { nombre, tipo, ganancia, categoria } }
@@ -8319,18 +8323,8 @@ window._cargarComboEnVenta = function(id) {
 // ============================================================
 
 async function cargarModoInicial() {
-  // 1. Aplicar inmediatamente desde localStorage
-  var saved = localStorage.getItem("jpsoft_modo");
-  if (saved) {
-    try {
-      var d = JSON.parse(saved);
-      modoActual        = d.modo       || "avanzado";
-      opcionalesActivos = d.opcionales || [];
-    } catch(e) {}
-  }
+  // Las variables ya tienen el valor de localStorage — solo aplicar y sincronizar con Firestore
   aplicarModo();
-
-  // 2. Sincronizar con Firestore en segundo plano
   try {
     var snap = await getDoc(doc(db, "config", "modo"));
     if (snap.exists()) {
