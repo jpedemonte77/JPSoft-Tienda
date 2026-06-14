@@ -343,6 +343,44 @@ async function loginOffline(email, password) {
 // ============================================================
 //  AUTH
 // ============================================================
+function cargarCacheLocal() {
+  try {
+    const p = localStorage.getItem("jpsoft_cache_proveedores");
+    if (p) {
+      proveedores = JSON.parse(p);
+      rebuildGananciaMap();
+      renderProveedores();
+      buildFilterBar();
+      populateProvSelect();
+    }
+  } catch(e) {}
+  try {
+    const pr = localStorage.getItem("jpsoft_cache_productos");
+    if (pr) {
+      const raw = JSON.parse(pr);
+      allProducts = raw.map(d => ({
+        ...d,
+        normDesc: norm(d.desc || ""),
+        normCod:  norm(String(d.cod || "")),
+        normId:   norm(String(d.id || ""))
+      }));
+      buildFilterBar();
+      renderProductosVenta();
+      renderProductosTabla();
+      updateStockBadge();
+    }
+  } catch(e) {}
+  try {
+    const c = localStorage.getItem("jpsoft_cache_caja");
+    if (c) {
+      cajaData = JSON.parse(c);
+      renderCaja();
+      renderGastos();
+      updateCajaTopbar();
+    }
+  } catch(e) {}
+}
+
 async function mostrarApp(email, uid = null) {
   // Mostrar la app inmediatamente sin esperar Firestore
   document.getElementById("login-screen").classList.add("hidden");
@@ -353,7 +391,10 @@ async function mostrarApp(email, uid = null) {
   document.getElementById("user-nombre").textContent = nombre;
   document.getElementById("user-avatar").textContent = iniciales(nombre);
 
-  // Inicializar Firebase antes de leer el rol
+  // Cargar datos desde caché local inmediatamente (funciona offline)
+  cargarCacheLocal();
+
+  // Inicializar Firebase (si hay internet, actualiza los datos)
   initFirebase();
 
   // Cargar rol desde Firestore (en segundo plano)
@@ -503,6 +544,7 @@ function initFirebase() {
   _unsubs.push(onSnapshot(collection(db, "proveedores"), snap => {
     proveedores = {};
     snap.forEach(d => { proveedores[d.id] = docToObj(d); });
+    try { localStorage.setItem("jpsoft_cache_proveedores", JSON.stringify(proveedores)); } catch(e) {}
     rebuildGananciaMap();
     renderProveedores();
     buildFilterBar();
@@ -520,6 +562,7 @@ function initFirebase() {
       normCod:  norm(String(d.data().cod || "")),
       normId:   norm(String(d.data().id || ""))
     }));
+    try { localStorage.setItem("jpsoft_cache_productos", JSON.stringify(allProducts)); } catch(e) {}
     buildFilterBar();
     renderProductosVenta();
     renderProductosTabla();
@@ -532,6 +575,7 @@ function initFirebase() {
   _unsubs.push(onSnapshot(collection(db, "caja"), snap => {
     cajaData = {};
     snap.forEach(d => { cajaData[d.id] = d.data(); });
+    try { localStorage.setItem("jpsoft_cache_caja", JSON.stringify(cajaData)); } catch(e) {}
     renderCaja();
     renderGastos();
     updateCajaTopbar();
@@ -1822,11 +1866,19 @@ async function confirmarVentaFinal() {
 
   // 3. Escribir en Firestore en segundo plano (funciona offline)
   const cajaRef = doc(db, 'caja', todayKey());
+  // Actualizar cajaData local y cache
+  if (!cajaData[todayKey()]) cajaData[todayKey()] = {};
+  cajaData[todayKey()][_turno] = { ...turnoData, ventas: ventasActuales };
+  try { localStorage.setItem("jpsoft_cache_caja", JSON.stringify(cajaData)); } catch(e) {}
   setDoc(cajaRef, { [_turno]: { ...turnoData, ventas: ventasActuales } }, { merge: true });
 
   Object.entries(stockUpdates).forEach(([prodId, val]) => {
+    // Actualizar allProducts local y cache
+    const prod = allProducts.find(p => p._id === prodId);
+    if (prod) prod.stock = val;
     updateDoc(doc(db, 'productos', prodId), { stock: val });
   });
+  try { localStorage.setItem("jpsoft_cache_productos", JSON.stringify(allProducts)); } catch(e) {}
 }
 
 // ============================================================
