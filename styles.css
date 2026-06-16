@@ -488,6 +488,7 @@ body {
   width: 100%;
   box-sizing: border-box;
   overflow-y: auto;
+  overflow-x: hidden;
   height: calc(100vh - var(--topbar-h));
 }
 .view.active { display: block; }
@@ -1068,7 +1069,9 @@ mark { background: #fef9c3; color: #854d0e; border-radius: 2px; padding: 0 1px; 
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  width: 100%;
   max-width: 100%;
+  display: block;
 }
 
 /* Redimensionado de columnas */
