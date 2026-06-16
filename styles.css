@@ -1068,6 +1068,7 @@ mark { background: #fef9c3; color: #854d0e; border-radius: 2px; padding: 0 1px; 
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  max-width: 100%;
 }
 
 /* Redimensionado de columnas */
