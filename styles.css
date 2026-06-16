@@ -1069,6 +1069,42 @@ mark { background: #fef9c3; color: #854d0e; border-radius: 2px; padding: 0 1px; 
   min-height: 0;
 }
 
+/* Redimensionado de columnas */
+#prodTable th.th-resize {
+  position: relative;
+}
+#prodTable th.th-resize::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+}
+#prodTable th.th-resize:hover::after {
+  background: var(--accent);
+  opacity: 0.3;
+}
+#prodTable.resizing {
+  user-select: none;
+  cursor: col-resize;
+}
+.menu-col-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text1);
+}
+.menu-col-item:hover { background: var(--bg3); }
+.menu-col-item input { cursor: pointer; width: 14px; height: 14px; }
+#btnResetColumnas:hover { background: var(--bg3); }
+
 /* ===========================
    VISTA CAJA
 =========================== */
