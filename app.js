@@ -2199,12 +2199,16 @@ function abrirModalCierre(turnoKey, { totE, totD, totC, totM, tot, ventas }) {
 }
 
 function updateCajaSidebar() {
+  const totalEl = document.getElementById("caja-sidebar-total");
+  const state   = document.getElementById("caja-sidebar-state");
+  if (!totalEl && !state) return; // El sidebar de caja ya no existe (movido al topbar)
+
   const hoy = cajaData[todayKey()] || {};
   const tmTot = calcTotalesTurno(hoy.manana);
   const ttTot = calcTotalesTurno(hoy.tarde);
   const total = tmTot.tot + ttTot.tot;
-  document.getElementById("caja-sidebar-total").textContent = fmt(total);
-  const state = document.getElementById("caja-sidebar-state");
+  if (totalEl) totalEl.textContent = fmt(total);
+  if (!state) return;
 
   const tmAbierto = hoy.manana?.apertura && !hoy.manana?.cierre;
   const ttAbierto = hoy.tarde?.apertura  && !hoy.tarde?.cierre;
@@ -7671,7 +7675,7 @@ function cerrarModalCompra() {
   compraEditId = null;
 }
 
-document.getElementById("btnNuevaCompra")?.addEventListener("click", abrirModalCompra);
+document.getElementById("btnNuevaCompra")?.addEventListener("click", () => abrirModalCompra());
 document.getElementById("closeModalCompra")?.addEventListener("click", cerrarModalCompra);
 document.getElementById("btnCancelarCompra")?.addEventListener("click", cerrarModalCompra);
 
