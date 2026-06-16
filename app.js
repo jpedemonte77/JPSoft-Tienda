@@ -7528,13 +7528,23 @@ function renderCompraItemsModal() {
   if (!wrap) return;
   const provId    = document.getElementById("compraProvSelect")?.value;
   const provNombre = proveedores[provId]?.nombre;
-  const provProds  = allProducts.filter(p => p.proveedor === provNombre);
+  // Si hay proveedor, filtrar por él; si no, mostrar todos los productos
+  const provProds = provNombre
+    ? allProducts.filter(p => p.proveedor === provNombre)
+    : allProducts.slice();
 
-  wrap.innerHTML = compraItems.map((item, i) => `
+  wrap.innerHTML = compraItems.map((item, i) => {
+    // Asegurar que el producto del item aparezca aunque no sea del proveedor
+    let opciones = provProds;
+    if (item.prodId && !provProds.some(p => p._id === item.prodId)) {
+      const prodItem = allProducts.find(p => p._id === item.prodId);
+      if (prodItem) opciones = [prodItem, ...provProds];
+    }
+    return `
     <div style="display:grid;grid-template-columns:1fr 80px 100px 28px;gap:6px;align-items:center">
       <select class="form-select" data-ci-prod="${i}" style="font-size:12px">
         <option value="">Seleccioná producto…</option>
-        ${provProds.map(p => `<option value="${p._id}" ${item.prodId === p._id ? "selected" : ""}>${p.desc}</option>`).join("")}
+        ${opciones.map(p => `<option value="${p._id}" ${item.prodId === p._id ? "selected" : ""}>${p.desc}</option>`).join("")}
       </select>
       <input type="number" class="form-input" data-ci-qty="${i}" value="${item.qty || 1}" min="1"
         placeholder="Cant." style="font-size:12px;text-align:center" />
@@ -7547,7 +7557,8 @@ function renderCompraItemsModal() {
           <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
         </svg>
       </button>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 
   const total = document.getElementById("compraTotalDisplay");
   if (total) total.textContent = fmt(Math.round(calcTotalCompra()));
@@ -7686,8 +7697,21 @@ document.getElementById("compraItems")?.addEventListener("change", e => {
     compraItems[iProd].precio = p?.lista || "";
     renderCompraItemsModal();
   }
-  if (iQty !== undefined)    { compraItems[iQty].qty       = parseInt(e.target.value) || 1; renderCompraItemsModal(); }
-  if (iPrecio !== undefined) { compraItems[iPrecio].precio = e.target.value;               renderCompraItemsModal(); }
+  if (iQty !== undefined)    { compraItems[iQty].qty       = parseInt(e.target.value) || 1; }
+  if (iPrecio !== undefined) { compraItems[iPrecio].precio = e.target.value; }
+  // Actualizar solo el total sin re-renderizar
+  const total = document.getElementById("compraTotalDisplay");
+  if (total) total.textContent = fmt(Math.round(calcTotalCompra()));
+});
+
+// input en vivo para actualizar total mientras se escribe
+document.getElementById("compraItems")?.addEventListener("input", e => {
+  const iQty    = e.target.dataset.ciQty;
+  const iPrecio = e.target.dataset.ciPrecio;
+  if (iQty !== undefined)    compraItems[iQty].qty    = parseInt(e.target.value) || 1;
+  if (iPrecio !== undefined) compraItems[iPrecio].precio = e.target.value;
+  const total = document.getElementById("compraTotalDisplay");
+  if (total) total.textContent = fmt(Math.round(calcTotalCompra()));
 });
 
 document.getElementById("compraItems")?.addEventListener("click", e => {
