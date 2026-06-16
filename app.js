@@ -7637,10 +7637,10 @@ function abrirModalCompra(id = null) {
   document.getElementById("compraFormaPago").value = c?.formaPago || "Efectivo";
   const sel = document.getElementById("compraProvSelect");
   sel.innerHTML = '<option value="">Seleccioná un proveedor…</option>';
-  Object.entries(proveedores).forEach(([id, p]) => {
+  Object.entries(proveedores).forEach(([pid, p]) => {
     const opt = document.createElement("option");
-    opt.value = id; opt.textContent = p.nombre;
-    if (c && c.provId === id) opt.selected = true;
+    opt.value = pid; opt.textContent = p.nombre;
+    if (c && c.provId === pid) opt.selected = true;
     sel.appendChild(opt);
   });
 
