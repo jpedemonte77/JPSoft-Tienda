@@ -7594,6 +7594,12 @@ function renderCompras() {
       <td class="num" style="font-weight:600;${tdBg}">${fmt(c.total||0)}</td>
       <td style="${tdBg}">${fpBadge}</td>
       <td style="font-size:12px;color:var(--text2);${tdBg}">${c.admin||"—"}</td>
+      <td style="${tdBg}">
+        <div style="display:flex;gap:5px;justify-content:flex-end">
+          <button class="btn-secondary" style="font-size:11px;padding:4px 8px;white-space:nowrap" onclick="window._editarCompra('${c._id}')">Editar</button>
+          <button class="btn-danger" style="font-size:11px;padding:4px 7px;opacity:.8;white-space:nowrap" onclick="window._eliminarCompra('${c._id}')">✕</button>
+        </div>
+      </td>
     </tr>`;
   }).join("");
 }
@@ -7619,18 +7625,31 @@ function initComprasListener() {
   }));
 }
 
-function abrirModalCompra() {
-  compraItems = [{ prodId: "", qty: 1, precio: "", desc: "" }];
-  document.getElementById("compraNotaInput").value = "";
-  document.getElementById("compraNroFactura").value = "";
-  document.getElementById("compraFormaPago").value = "Efectivo";
+let compraEditId = null;
+
+function abrirModalCompra(id = null) {
+  compraEditId = id;
+  const c = id ? comprasData.find(x => x._id === id) : null;
+
+  compraItems = c ? c.items.map(i => ({ prodId: i.prodId, qty: i.qty, precio: i.precio, desc: i.desc })) : [{ prodId: "", qty: 1, precio: "", desc: "" }];
+  document.getElementById("compraNotaInput").value = c?.nota || "";
+  document.getElementById("compraNroFactura").value = c?.nroFactura || "";
+  document.getElementById("compraFormaPago").value = c?.formaPago || "Efectivo";
   const sel = document.getElementById("compraProvSelect");
   sel.innerHTML = '<option value="">Seleccioná un proveedor…</option>';
   Object.entries(proveedores).forEach(([id, p]) => {
     const opt = document.createElement("option");
     opt.value = id; opt.textContent = p.nombre;
+    if (c && c.provId === id) opt.selected = true;
     sel.appendChild(opt);
   });
+
+  // Actualizar título y botón
+  const titulo = document.querySelector("#modalCompra .modal-title");
+  if (titulo) titulo.textContent = id ? "Editar compra" : "Nueva compra";
+  const btnConfirmar = document.getElementById("btnConfirmarCompra");
+  if (btnConfirmar) btnConfirmar.textContent = id ? "Guardar cambios" : "Registrar compra";
+
   renderCompraItemsModal();
   document.getElementById("modalCompra").classList.remove("hidden");
 }
@@ -7638,6 +7657,7 @@ function abrirModalCompra() {
 function cerrarModalCompra() {
   document.getElementById("modalCompra").classList.add("hidden");
   compraItems = [];
+  compraEditId = null;
 }
 
 document.getElementById("btnNuevaCompra")?.addEventListener("click", abrirModalCompra);
@@ -7645,6 +7665,7 @@ document.getElementById("closeModalCompra")?.addEventListener("click", cerrarMod
 document.getElementById("btnCancelarCompra")?.addEventListener("click", cerrarModalCompra);
 
 document.getElementById("compraProvSelect")?.addEventListener("change", () => {
+  if (compraEditId) return; // No resetear si estamos editando
   compraItems = [{ prodId: "", qty: 1, precio: "", desc: "" }];
   renderCompraItemsModal();
 });
@@ -7689,35 +7710,92 @@ document.getElementById("btnConfirmarCompra")?.addEventListener("click", async (
   const nroFactura = document.getElementById("compraNroFactura")?.value.trim();
   const formaPago  = document.getElementById("compraFormaPago")?.value || "Efectivo";
   const total      = Math.round(calcTotalCompra());
-  const fecha      = todayKey();
 
-  const compraRef = doc(collection(db, "compras"));
-  await setDoc(compraRef, {
-    proveedor: prov, provId, nota, nroFactura, formaPago,
-    items: itemsValidos.map(i => ({
-      prodId: i.prodId, desc: i.desc,
-      qty: parseInt(i.qty)||1,
-      precio: parseFloat(i.precio)||0,
-      subtotal: Math.round((parseFloat(i.precio)||0) * (parseInt(i.qty)||1))
-    })),
-    total, fecha, ts: new Date().toISOString(),
-    admin: getNombreUsuario()
-  });
+  const itemsData = itemsValidos.map(i => ({
+    prodId: i.prodId, desc: i.desc,
+    qty: parseInt(i.qty)||1,
+    precio: parseFloat(i.precio)||0,
+    subtotal: Math.round((parseFloat(i.precio)||0) * (parseInt(i.qty)||1))
+  }));
 
-  for (const item of itemsValidos) {
-    const prod = allProducts.find(p => p._id === item.prodId);
-    if (prod && typeof prod.stock === "number") {
-      await updateDoc(doc(db, "productos", item.prodId), {
-        stock: prod.stock + (parseInt(item.qty) || 0),
-        lista: parseFloat(item.precio) || prod.lista
+  if (compraEditId) {
+    // ── EDICIÓN ──
+    const compraVieja = comprasData.find(c => c._id === compraEditId);
+    // Revertir stock viejo y aplicar stock nuevo
+    if (compraVieja) {
+      // Revertir lo que sumó la compra vieja
+      (compraVieja.items || []).forEach(item => {
+        const prod = allProducts.find(p => p._id === item.prodId);
+        if (prod && typeof prod.stock === "number") {
+          prod.stock = Math.max(0, prod.stock - (item.qty || 0));
+        }
       });
     }
+    // Aplicar stock nuevo
+    for (const item of itemsData) {
+      const prod = allProducts.find(p => p._id === item.prodId);
+      if (prod && typeof prod.stock === "number") {
+        const nuevoStock = prod.stock + (item.qty || 0);
+        prod.stock = nuevoStock;
+        updateDoc(doc(db, "productos", item.prodId), { stock: nuevoStock, lista: item.precio || prod.lista });
+      }
+    }
+    updateDoc(doc(db, "compras", compraEditId), {
+      proveedor: prov, provId, nota, nroFactura, formaPago,
+      items: itemsData, total,
+      editadoTs: new Date().toISOString(), editadoPor: getNombreUsuario()
+    });
+    registrarLog("compra", `Compra editada — ${fmt(total)} · ${prov}`);
+    showToast("Compra actualizada ✓", "success");
+  } else {
+    // ── NUEVA COMPRA ──
+    const compraRef = doc(collection(db, "compras"));
+    setDoc(compraRef, {
+      proveedor: prov, provId, nota, nroFactura, formaPago,
+      items: itemsData,
+      total, fecha: todayKey(), ts: new Date().toISOString(),
+      admin: getNombreUsuario()
+    });
+    for (const item of itemsData) {
+      const prod = allProducts.find(p => p._id === item.prodId);
+      if (prod && typeof prod.stock === "number") {
+        const nuevoStock = prod.stock + (item.qty || 0);
+        prod.stock = nuevoStock;
+        updateDoc(doc(db, "productos", item.prodId), { stock: nuevoStock, lista: item.precio || prod.lista });
+      }
+    }
+    registrarLog("compra", `Compra registrada — ${fmt(total)} · ${prov}${nroFactura ? ` · Fact. ${nroFactura}` : ""}`);
+    showToast(`Compra registrada ✓ — ${fmt(total)}`, "success");
   }
 
-  registrarLog("compra", `Compra registrada — ${fmt(total)} · ${prov}${nroFactura ? ` · Fact. ${nroFactura}` : ""}`);
-  showToast(`Compra registrada ✓ — ${fmt(total)}`, "success");
   cerrarModalCompra();
 });
+
+// Editar compra
+window._editarCompra = function(id) {
+  abrirModalCompra(id);
+};
+
+// Eliminar compra (revierte el stock)
+window._eliminarCompra = function(id) {
+  const c = comprasData.find(x => x._id === id);
+  if (!c) return;
+  if (!confirm(`¿Eliminar esta compra de ${c.proveedor || ""} por ${fmt(c.total||0)}?\n\nEl stock que sumó esta compra será revertido.`)) return;
+
+  // Revertir stock
+  (c.items || []).forEach(item => {
+    const prod = allProducts.find(p => p._id === item.prodId);
+    if (prod && typeof prod.stock === "number") {
+      const nuevoStock = Math.max(0, prod.stock - (item.qty || 0));
+      prod.stock = nuevoStock;
+      updateDoc(doc(db, "productos", item.prodId), { stock: nuevoStock });
+    }
+  });
+
+  deleteDoc(doc(db, "compras", id));
+  registrarLog("compra", `Compra eliminada — ${fmt(c.total||0)} · ${c.proveedor||""}`);
+  showToast("Compra eliminada y stock revertido ✓", "success");
+};
 
 // ============================================================
 //  PRESUPUESTOS
