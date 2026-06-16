@@ -523,6 +523,9 @@ function initFirebase() {
   // Notificaciones
   initNotificaciones();
 
+  // Aplicar config de columnas guardada
+  setTimeout(function() { if (typeof aplicarConfigColumnas === "function") aplicarConfigColumnas(); }, 300);
+
   // Config márgenes
   _unsubs.push(onSnapshot(doc(db, "config", "margenes"), snap => {
     if (snap.exists()) Object.assign(margenesConfig, snap.data());
@@ -2477,6 +2480,9 @@ function renderProductosTabla() {
   }).join("");
 
   renderPagination("prodPagination", prodPage, totalPages, v => { prodPage = v; renderProductosTabla(); });
+
+  // Aplicar visibilidad de columnas a las celdas recién renderizadas
+  if (typeof aplicarColsACeldas === "function") aplicarColsACeldas();
 }
 
 document.getElementById("prodSearchInput")?.addEventListener("input", () => { prodPage = 1; renderProductosTabla(); });
@@ -8272,3 +8278,192 @@ window._cargarComboEnVenta = function(id) {
   renderCartLateral();
   showToast(`Combo "${c.nombre}" cargado · ${fmt(c.precio)} ✓`, "success");
 };
+
+// ============================================================
+//  MANIPULACIÓN DE COLUMNAS — TABLA PRODUCTOS
+// ============================================================
+const COLUMNAS_PRODUCTOS = [
+  { id: "proveedor", label: "Proveedor", fija: false },
+  { id: "id",        label: "ID",        fija: false },
+  { id: "codigo",    label: "Código",    fija: false },
+  { id: "producto",  label: "Producto",  fija: true  },
+  { id: "rubro",     label: "Rubro",     fija: false },
+  { id: "pventa",    label: "P. Venta",  fija: false },
+  { id: "plista",    label: "P. Lista",  fija: false },
+  { id: "iva",       label: "IVA%",      fija: false },
+  { id: "stock",     label: "Stock",     fija: false },
+  { id: "min",       label: "Mín",       fija: false },
+  { id: "max",       label: "Máx",       fija: false },
+  { id: "activo",    label: "Activo",    fija: false }
+];
+
+const ANCHOS_DEFAULT = {
+  check:32, proveedor:90, id:38, codigo:100, producto:120, rubro:70,
+  pventa:75, plista:75, iva:38, stock:44, min:32, max:32, activo:52, acciones:110
+};
+
+function cargarConfigColumnas() {
+  var ocultas = [];
+  var anchos  = {};
+  try {
+    var saved = JSON.parse(localStorage.getItem("jpsoft_cols_productos") || "{}");
+    ocultas = saved.ocultas || [];
+    anchos  = saved.anchos  || {};
+  } catch(e) {}
+  return { ocultas, anchos };
+}
+
+function guardarConfigColumnas(ocultas, anchos) {
+  try {
+    localStorage.setItem("jpsoft_cols_productos", JSON.stringify({ ocultas: ocultas, anchos: anchos }));
+  } catch(e) {}
+}
+
+function aplicarConfigColumnas() {
+  var cfg = cargarConfigColumnas();
+  var tabla = document.getElementById("prodTable");
+  if (!tabla) return;
+
+  // Aplicar visibilidad
+  COLUMNAS_PRODUCTOS.forEach(function(col) {
+    var oculta = cfg.ocultas.indexOf(col.id) >= 0 && !col.fija;
+    var th  = tabla.querySelector('th[data-col="' + col.id + '"]');
+    var colEl = tabla.querySelector('col[data-col="' + col.id + '"]');
+    if (th)    th.style.display    = oculta ? "none" : "";
+    if (colEl) colEl.style.display = oculta ? "none" : "";
+  });
+
+  // Aplicar anchos
+  Object.keys(cfg.anchos).forEach(function(colId) {
+    var colEl = tabla.querySelector('col[data-col="' + colId + '"]');
+    var th    = tabla.querySelector('th[data-col="' + colId + '"]');
+    if (colEl) colEl.style.width = cfg.anchos[colId] + "px";
+    if (th)    th.style.width    = cfg.anchos[colId] + "px";
+  });
+
+  // Re-render para aplicar a las celdas del body
+  if (typeof renderProductosTabla === "function") renderProductosTabla();
+}
+
+function aplicarColsACeldas() {
+  // Ocultar las celdas del body según columnas ocultas
+  var cfg = cargarConfigColumnas();
+  var tabla = document.getElementById("prodTable");
+  if (!tabla) return;
+  var indices = {};
+  tabla.querySelectorAll("thead th[data-col]").forEach(function(th, i) {
+    indices[th.dataset.col] = i;
+  });
+  COLUMNAS_PRODUCTOS.forEach(function(col) {
+    if (col.fija) return;
+    var oculta = cfg.ocultas.indexOf(col.id) >= 0;
+    var idx = indices[col.id];
+    if (idx === undefined) return;
+    tabla.querySelectorAll("tbody tr").forEach(function(tr) {
+      var celda = tr.children[idx];
+      if (celda) celda.style.display = oculta ? "none" : "";
+    });
+  });
+}
+
+function initMenuColumnas() {
+  var lista = document.getElementById("menuColumnasLista");
+  if (!lista) return;
+  var cfg = cargarConfigColumnas();
+
+  lista.innerHTML = COLUMNAS_PRODUCTOS.map(function(col) {
+    var visible = cfg.ocultas.indexOf(col.id) < 0;
+    var disabled = col.fija ? "disabled" : "";
+    return '<label class="menu-col-item">' +
+      '<input type="checkbox" data-col="' + col.id + '" ' + (visible ? "checked" : "") + ' ' + disabled + '>' +
+      '<span>' + col.label + (col.fija ? ' <span style="font-size:10px;color:var(--text3)">(fija)</span>' : '') + '</span>' +
+      '</label>';
+  }).join("");
+
+  lista.querySelectorAll('input[type="checkbox"]').forEach(function(chk) {
+    chk.addEventListener("change", function() {
+      var colId = chk.dataset.col;
+      var cfg = cargarConfigColumnas();
+      var idx = cfg.ocultas.indexOf(colId);
+      if (chk.checked && idx >= 0) cfg.ocultas.splice(idx, 1);
+      else if (!chk.checked && idx < 0) cfg.ocultas.push(colId);
+      guardarConfigColumnas(cfg.ocultas, cfg.anchos);
+      aplicarConfigColumnas();
+    });
+  });
+}
+
+// Toggle menú columnas
+document.getElementById("btnColumnas")?.addEventListener("click", function(e) {
+  e.stopPropagation();
+  var menu = document.getElementById("menuColumnas");
+  if (!menu) return;
+  var abierto = menu.style.display === "block";
+  menu.style.display = abierto ? "none" : "block";
+  if (!abierto) initMenuColumnas();
+});
+
+// Cerrar menú al clickear afuera
+document.addEventListener("click", function(e) {
+  var menu = document.getElementById("menuColumnas");
+  if (menu && menu.style.display === "block" && !e.target.closest("#menuColumnas") && !e.target.closest("#btnColumnas")) {
+    menu.style.display = "none";
+  }
+});
+
+// Restablecer columnas
+document.getElementById("btnResetColumnas")?.addEventListener("click", function() {
+  localStorage.removeItem("jpsoft_cols_productos");
+  var tabla = document.getElementById("prodTable");
+  if (tabla) {
+    Object.keys(ANCHOS_DEFAULT).forEach(function(colId) {
+      var colEl = tabla.querySelector('col[data-col="' + colId + '"]');
+      var th    = tabla.querySelector('th[data-col="' + colId + '"]');
+      if (colEl) colEl.style.width = ANCHOS_DEFAULT[colId] + "px";
+      if (th)    th.style.width    = ANCHOS_DEFAULT[colId] + "px";
+    });
+  }
+  aplicarConfigColumnas();
+  initMenuColumnas();
+  showToast("Columnas restablecidas ✓", "success");
+});
+
+// Redimensionado de columnas
+(function initResizeColumnas() {
+  var tabla = document.getElementById("prodTable");
+  if (!tabla) return;
+  var resizing = null, startX = 0, startW = 0;
+
+  tabla.querySelectorAll("th.th-resize").forEach(function(th) {
+    th.addEventListener("mousedown", function(e) {
+      // Solo si el click es en los últimos 6px (la zona del agarre)
+      var rect = th.getBoundingClientRect();
+      if (e.clientX < rect.right - 8) return;
+      resizing = th;
+      startX = e.clientX;
+      startW = th.offsetWidth;
+      tabla.classList.add("resizing");
+      e.preventDefault();
+    });
+  });
+
+  document.addEventListener("mousemove", function(e) {
+    if (!resizing) return;
+    var nuevoW = Math.max(28, startW + (e.clientX - startX));
+    var colId = resizing.dataset.col;
+    var colEl = tabla.querySelector('col[data-col="' + colId + '"]');
+    if (colEl) colEl.style.width = nuevoW + "px";
+    resizing.style.width = nuevoW + "px";
+  });
+
+  document.addEventListener("mouseup", function() {
+    if (!resizing) return;
+    var colId = resizing.dataset.col;
+    var nuevoW = resizing.offsetWidth;
+    var cfg = cargarConfigColumnas();
+    cfg.anchos[colId] = nuevoW;
+    guardarConfigColumnas(cfg.ocultas, cfg.anchos);
+    tabla.classList.remove("resizing");
+    resizing = null;
+  });
+})();
