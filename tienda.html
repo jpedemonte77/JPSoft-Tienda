@@ -769,6 +769,19 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Solo activos
         </button>
+        <div style="position:relative;flex-shrink:0">
+          <button class="btn-secondary" id="btnColumnas" style="flex-shrink:0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+            Columnas
+          </button>
+          <div id="menuColumnas" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:500;min-width:180px;padding:6px">
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;padding:6px 8px 4px">Mostrar columnas</div>
+            <div id="menuColumnasLista"></div>
+            <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px">
+              <button id="btnResetColumnas" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;font-size:12px;color:var(--text2);padding:6px 8px;border-radius:var(--radius-sm);font-family:inherit">Restablecer columnas</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Barra de acciones selección múltiple -->
@@ -782,39 +795,39 @@
         <button class="btn-secondary" id="btnDeseleccionarTodos" style="font-size:12px;padding:5px 12px">Cancelar</button>
       </div>
       <div class="productos-table-wrap">
-        <table style="table-layout:fixed">
+        <table style="table-layout:fixed" id="prodTable">
           <colgroup>
-            <col style="width:32px">
-            <col style="width:90px">
-            <col style="width:38px">
-            <col style="width:100px">
-            <col style="min-width:120px">
-            <col style="width:70px">
-            <col style="width:75px">
-            <col style="width:75px">
-            <col style="width:38px">
-            <col style="width:44px">
-            <col style="width:32px">
-            <col style="width:32px">
-            <col style="width:52px">
-            <col style="width:130px">
+            <col data-col="check" style="width:32px">
+            <col data-col="proveedor" style="width:90px">
+            <col data-col="id" style="width:38px">
+            <col data-col="codigo" style="width:100px">
+            <col data-col="producto" style="min-width:120px">
+            <col data-col="rubro" style="width:70px">
+            <col data-col="pventa" style="width:75px">
+            <col data-col="plista" style="width:75px">
+            <col data-col="iva" style="width:38px">
+            <col data-col="stock" style="width:44px">
+            <col data-col="min" style="width:32px">
+            <col data-col="max" style="width:32px">
+            <col data-col="activo" style="width:52px">
+            <col data-col="acciones" style="width:130px">
           </colgroup>
           <thead>
             <tr>
-              <th style="text-align:center;width:32px"><input type="checkbox" id="prodCheckAll" style="cursor:pointer;width:14px;height:14px"></th>
-              <th style="width:90px">Proveedor</th>
-              <th style="width:38px">ID</th>
-              <th style="width:100px">Codigo</th>
-              <th>Producto</th>
-              <th style="width:70px">Rubro</th>
-              <th class="num" style="width:75px">P. Venta</th>
-              <th class="num" style="width:75px">P. Lista</th>
-              <th class="num" style="width:38px">IVA%</th>
-              <th class="num" style="width:44px">Stock</th>
-              <th class="num" style="width:32px">Mín</th>
-              <th class="num" style="width:32px">Máx</th>
-              <th style="text-align:center;width:52px">Activo</th>
-              <th style="width:110px"></th>
+              <th data-col="check" style="text-align:center;width:32px"><input type="checkbox" id="prodCheckAll" style="cursor:pointer;width:14px;height:14px"></th>
+              <th data-col="proveedor" class="th-resize" style="width:90px">Proveedor</th>
+              <th data-col="id" class="th-resize" style="width:38px">ID</th>
+              <th data-col="codigo" class="th-resize" style="width:100px">Codigo</th>
+              <th data-col="producto" class="th-resize">Producto</th>
+              <th data-col="rubro" class="th-resize" style="width:70px">Rubro</th>
+              <th data-col="pventa" class="num th-resize" style="width:75px">P. Venta</th>
+              <th data-col="plista" class="num th-resize" style="width:75px">P. Lista</th>
+              <th data-col="iva" class="num th-resize" style="width:38px">IVA%</th>
+              <th data-col="stock" class="num th-resize" style="width:44px">Stock</th>
+              <th data-col="min" class="num th-resize" style="width:32px">Mín</th>
+              <th data-col="max" class="num th-resize" style="width:32px">Máx</th>
+              <th data-col="activo" style="text-align:center;width:52px">Activo</th>
+              <th data-col="acciones" style="width:110px"></th>
             </tr>
           </thead>
           <tbody id="prodTableBody"></tbody>
