@@ -5023,10 +5023,6 @@ function renderClientesLista() {
       <td colspan="6" style="padding:0;border-bottom:1px solid var(--border)">
         <div style="padding:10px 14px;background:var(--surface2)">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-            ${waNum ? `<a href="https://wa.me/${waNum}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--radius-sm);background:#E1F5EE;border:1px solid #9FE1CB;font-size:11.5px;color:#0F6E56;text-decoration:none">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="#1D9E75"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.05 2C6.495 2 2 6.495 2 12.05c0 1.868.497 3.623 1.362 5.14L2 22l4.948-1.337A10.01 10.01 0 0 0 12.05 22C17.605 22 22 17.505 22 11.95 22 6.495 17.605 2 12.05 2zm0 18.385a8.33 8.33 0 0 1-4.239-1.158l-.304-.18-3.143.849.845-3.073-.198-.315A8.324 8.324 0 0 1 3.715 12.05c0-4.598 3.737-8.335 8.335-8.335 4.598 0 8.335 3.737 8.335 8.335 0 4.598-3.737 8.335-8.335 8.335z"/></svg>
-              Contactar
-            </a>` : ""}
             <button type="button" class="btn-primary cliente-cobrar-btn" data-id="${id}" style="font-size:11.5px;padding:5px 10px">Cobrar</button>
             <button type="button" class="btn-secondary cliente-ver-btn" data-id="${id}" style="font-size:11.5px;padding:5px 10px;background:#E6F1FB;color:#0C447C;border-color:#B5D4F4">Ver</button>
             <button type="button" class="btn-danger cliente-eliminar-btn" data-id="${id}" style="font-size:11.5px;padding:5px 8px">
@@ -5091,7 +5087,16 @@ function renderClientesLista() {
           </div>
         </div>
       </td>
-      <td style="font-size:12px;color:var(--text2);white-space:nowrap;${tdStyle}">${c.telefono||"—"}</td>
+      <td style="font-size:12px;white-space:nowrap;${tdStyle}">${
+        (() => {
+          const wa = buildWA(c.telefono);
+          if (!wa) return `<span style="color:var(--text2)">—</span>`;
+          return `<a href="https://wa.me/${wa}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;color:#0F6E56;text-decoration:none;font-size:12px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#1D9E75"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.05 2C6.495 2 2 6.495 2 12.05c0 1.868.497 3.623 1.362 5.14L2 22l4.948-1.337A10.01 10.01 0 0 0 12.05 22C17.605 22 22 17.505 22 11.95 22 6.495 17.605 2 12.05 2zm0 18.385a8.33 8.33 0 0 1-4.239-1.158l-.304-.18-3.143.849.845-3.073-.198-.315A8.324 8.324 0 0 1 3.715 12.05c0-4.598 3.737-8.335 8.335-8.335 4.598 0 8.335 3.737 8.335 8.335 0 4.598-3.737 8.335-8.335 8.335z"/></svg>
+            ${c.telefono}
+          </a>`;
+        })()
+      }</td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap;${tdStyle}">${c.localidad||"—"}</td>
       <td style="white-space:nowrap;${tdStyle}"><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text2)">${ivaShort}</span></td>
       <td class="num" style="font-weight:600;color:${saldoColor};white-space:nowrap;${tdStyle}">${saldoTxt}</td>
