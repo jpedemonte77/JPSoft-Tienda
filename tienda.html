@@ -796,7 +796,7 @@
         <button class="btn-secondary" id="btnDeseleccionarTodos" style="font-size:12px;padding:5px 12px">Cancelar</button>
       </div>
       <div class="productos-table-wrap">
-        <table style="table-layout:fixed" id="prodTable">
+        <table style="table-layout:fixed;min-width:900px" id="prodTable">
           <colgroup>
             <col data-col="check" style="width:32px">
             <col data-col="proveedor" style="width:90px">
@@ -872,8 +872,8 @@
       </div>
 
       <!-- Tabla de proveedores -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-        <table style="table-layout:fixed;width:100%">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;overflow-y:visible">
+        <table style="table-layout:fixed;width:100%;min-width:760px">
           <colgroup>
             <col style="width:160px">
             <col style="width:100px">
