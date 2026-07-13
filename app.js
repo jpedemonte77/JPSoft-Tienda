@@ -2329,7 +2329,7 @@ async function imprimirCierreCaja() {
 
   const content = `
     <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#111;padding:2rem;max-width:520px;margin:0 auto">
-      <div style="font-size:18px;font-weight:600;margin-bottom:2px">JPSoft | Tienda</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:2px">JPSoft Tienda</div>
       <div style="font-size:12px;color:#888;margin-bottom:1.5rem">Resumen de cierre — ${fechaLbl}</div>
 
       ${renderTurnoHTML(manana, "Mañana")}
@@ -2344,7 +2344,7 @@ async function imprimirCierreCaja() {
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px"><span style="color:#185fa5;font-weight:500">Crédito</span><span>${fmt(totCG)}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:17px;font-weight:600;padding-top:8px;border-top:2px solid #111;margin-top:6px"><span>TOTAL GENERAL</span><span>${fmt(totGeneral)}</span></div>
 
-      <div style="font-size:11px;color:#bbb;text-align:center;margin-top:1.5rem">Generado el ${now} · JPSoft | Tienda</div>
+      <div style="font-size:11px;color:#bbb;text-align:center;margin-top:1.5rem">Generado el ${now} · JPSoft Tienda</div>
     </div>`;
 
   // Nombre archivo
@@ -3256,7 +3256,7 @@ document.getElementById("btnImprimirProveedoresPDF")?.addEventListener("click", 
   const content = `
     <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#111;padding:2rem;max-width:680px;margin:0 auto">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <div style="font-size:18px;font-weight:600">JPSoft | Tienda</div>
+        <div style="font-size:18px;font-weight:600">JPSoft Tienda</div>
         <div style="font-size:11px;color:#888">Generado el ${now}</div>
       </div>
       <div style="font-size:12px;color:#888;margin-bottom:1.25rem">Proveedores — ${lista.length} registros</div>
@@ -3832,7 +3832,7 @@ document.getElementById("btnExportarReportePDF")?.addEventListener("click", asyn
 
   const content = `<div style="font-family:'DM Sans',sans-serif;font-size:11px;color:#111;padding:10mm;width:210mm;box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:2px solid #111;padding-bottom:5px">
-      <div style="font-size:15px;font-weight:600">JPSoft | Tienda — Reportes</div>
+      <div style="font-size:15px;font-weight:600">JPSoft Tienda — Reportes</div>
       <div style="font-size:9px;color:#888">${periodoLabel} · ${ventas.length} ventas</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px">
@@ -3854,7 +3854,7 @@ document.getElementById("btnExportarReportePDF")?.addEventListener("click", asyn
         </table>
       </div>
     </div>
-    <div style="font-size:8px;color:#bbb;text-align:center;margin-top:10px;border-top:1px solid #eee;padding-top:4px">JPSoft | Tienda · ${now}</div>
+    <div style="font-size:8px;color:#bbb;text-align:center;margin-top:10px;border-top:1px solid #eee;padding-top:4px">JPSoft Tienda · ${now}</div>
   </div>`;
 
   const btn = document.getElementById("btnExportarReportePDF");
@@ -4118,10 +4118,10 @@ document.getElementById("btnImprimirListaPrecios")?.addEventListener("click", ()
 
   const printArea = document.getElementById("printArea");
   printArea.innerHTML = `
-    <div class="p-brand">JPSoft | Tienda</div>
+    <div class="p-brand">JPSoft Tienda</div>
     <div class="p-sub">Lista de precios — ${now} &nbsp;·&nbsp; ${fuente.length} productos${provFilt ? ` &nbsp;·&nbsp; ${provFilt}` : ""}${rubroFilt ? ` &nbsp;·&nbsp; ${rubroFilt}` : ""}</div>
     ${seccionesHtml}
-    <div class="p-footer">JPSoft | Tienda &nbsp;·&nbsp; ${now}</div>`;
+    <div class="p-footer">JPSoft Tienda &nbsp;·&nbsp; ${now}</div>`;
 
   setTimeout(() => {
     window.print();
@@ -5940,7 +5940,7 @@ document.getElementById("btnImprimirGastosPDF")?.addEventListener("click", async
   const content = `
     <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#111;padding:2rem;max-width:680px;margin:0 auto">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-        <div style="font-size:18px;font-weight:600">JPSoft | Tienda</div>
+        <div style="font-size:18px;font-weight:600">JPSoft Tienda</div>
         <div style="font-size:11px;color:#888">Generado el ${now}</div>
       </div>
       <div style="font-size:12px;color:#888;margin-bottom:1.25rem">Gastos — ${periodoLbl} · ${gastosTodos.length} registros</div>
@@ -6042,7 +6042,7 @@ document.getElementById("btnImprimirComprasPDF")?.addEventListener("click", asyn
   const content = `
     <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#111;padding:2rem;max-width:620px;margin:0 auto">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-        <div style="font-size:18px;font-weight:600">JPSoft | Tienda</div>
+        <div style="font-size:18px;font-weight:600">JPSoft Tienda</div>
         <div style="font-size:11px;color:#888;text-align:right">Generado el ${now}</div>
       </div>
       <div style="font-size:12px;color:#888;margin-bottom:1.25rem">Registro de compras</div>
@@ -6311,7 +6311,7 @@ document.getElementById("btnImprimirTicket")?.addEventListener("click", () => {
   const metodoLabel = { efectivo: "Efectivo", mp: "Mercado Pago", debito: "Débito", credito: "Crédito" };
 
   let txt = "";
-  txt += centro("JPSoft | Tienda") + "\n";
+  txt += centro("JPSoft Tienda") + "\n";
   txt += centro(fechaFmt) + "\n";
   if (v.nro) txt += centro(fmtNroVenta(v.nro)) + "\n";
   txt += lineaPuntos() + "\n";
@@ -6333,7 +6333,7 @@ document.getElementById("btnImprimirTicket")?.addEventListener("click", () => {
   txt += `Metodo: ${metodoLabel[v.metodo] || v.metodo || "—"}` + "\n";
   txt += lineaPuntos() + "\n";
   txt += centro("Gracias por su compra") + "\n";
-  txt += centro("JPSoft | Tienda") + "\n";
+  txt += centro("JPSoft Tienda") + "\n";
 
   // Imprimir via ventana auxiliar
   const win = window.open("", "_blank", "width=400,height=600");
@@ -6371,7 +6371,7 @@ document.getElementById("btnGuardarTicketPDF")?.addEventListener("click", async 
     <tr><td colspan="2" style="padding:3px 0;font-size:11px;color:#888">Descuento</td><td style="text-align:right;font-size:11px;color:#888">-${fmt(v.descuento)}</td></tr>` : "";
 
   const content = `<div style="font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#111;padding:24px;max-width:320px;margin:0 auto">
-    <div style="font-size:18px;font-weight:600;margin-bottom:2px">JPSoft | Tienda</div>
+    <div style="font-size:18px;font-weight:600;margin-bottom:2px">JPSoft Tienda</div>
     <div style="font-size:11px;color:#888;margin-bottom:2px">${fechaFmt} · ${v.hora || ""}</div>
     ${v.nro ? `<div style="font-size:12px;font-weight:600;color:#111;margin-bottom:10px;font-family:monospace">${fmtNroVenta(v.nro)}</div>` : '<div style="margin-bottom:10px"></div>'}
     <div style="border-top:1px solid #eee;margin-bottom:10px"></div>
@@ -6391,7 +6391,7 @@ document.getElementById("btnGuardarTicketPDF")?.addEventListener("click", async 
       </tr>
     </table>
     <div style="font-size:11px;color:#888;margin-top:4px">${metodoLabel[v.metodo] || v.metodo || "—"} · ${v.admin || ""}</div>
-    <div style="border-top:1px solid #eee;margin-top:14px;padding-top:8px;text-align:center;font-size:10px;color:#bbb">Gracias por su compra · JPSoft | Tienda</div>
+    <div style="border-top:1px solid #eee;margin-top:14px;padding-top:8px;text-align:center;font-size:10px;color:#bbb">Gracias por su compra · JPSoft Tienda</div>
   </div>`;
 
   const container = document.createElement("div");
@@ -7282,7 +7282,7 @@ document.getElementById("btnImprimirClientesPDF")?.addEventListener("click", asy
   const content = `
     <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#111;padding:2rem;max-width:720px;margin:0 auto">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-        <div style="font-size:18px;font-weight:600">JPSoft | Tienda</div>
+        <div style="font-size:18px;font-weight:600">JPSoft Tienda</div>
         <div style="font-size:11px;color:#888">Generado el ${now}</div>
       </div>
       <div style="font-size:12px;color:#888;margin-bottom:1.25rem">Listado de clientes</div>
@@ -8128,7 +8128,7 @@ window._imprimirPresupuesto = async function(id) {
     <div style="font-family:'DM Sans',sans-serif;color:#111;padding:2.5rem;max-width:600px;margin:0 auto">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
         <div>
-          <div style="font-size:22px;font-weight:700">JPSoft | Tienda</div>
+          <div style="font-size:22px;font-weight:700">JPSoft Tienda</div>
           <div style="font-size:13px;color:#888;margin-top:2px">Presupuesto ${nroFmt}</div>
         </div>
         <div style="text-align:right;font-size:12px;color:#888">
