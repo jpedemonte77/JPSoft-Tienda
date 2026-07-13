@@ -1,6 +1,6 @@
 {
-  "name": "JPSoft | Tienda",
-  "short_name": "JPSoft | Tienda",
+  "name": "JPSoft Tienda",
+  "short_name": "JPSoft Tienda",
   "description": "Sistema de gestión para tiendas",
   "start_url": "index.html",
   "scope": "./",
